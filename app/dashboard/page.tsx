@@ -3,35 +3,7 @@
 import { KpiCards } from "@/components/kpi-cards"
 import { DashboardCharts } from "@/components/dashboard-charts"
 import { CampaignTable } from "@/components/campaign-table"
-import { CurrencyProvider, currencies, useCurrency, type CurrencyCode } from "@/lib/currency"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
-function CurrencySelector() {
-  const { currency, setCurrencyCode } = useCurrency()
-  return (
-    <Select value={currency.code} onValueChange={(v) => setCurrencyCode(v as CurrencyCode)}>
-      <SelectTrigger className="w-52 border-border bg-secondary text-foreground">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {currencies.map((c) => (
-          <SelectItem key={c.code} value={c.code}>
-            <span className="flex items-center gap-2">
-              <span className="font-mono text-sm">{c.symbol}</span>
-              <span>{c.label}</span>
-            </span>
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  )
-}
+import { CurrencyProvider } from "@/lib/currency"
 
 import { useEffect, useState } from "react"
 import { Loader2, AlertCircle } from "lucide-react"
@@ -88,7 +60,6 @@ function DashboardContent() {
             Tum platformlardaki reklam performansinizin genel gorunumu.
           </p>
         </div>
-        <CurrencySelector />
       </div>
       <KpiCards kpiData={data.stats} />
       <DashboardCharts trendData={data.trend} platformData={data.platforms} />

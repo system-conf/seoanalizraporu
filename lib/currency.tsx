@@ -2,64 +2,57 @@
 
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react"
 
-export type CurrencyCode = "USD" | "EUR" | "TRY" | "GBP"
+export type CurrencyCode = "TRY"
 
 interface CurrencyInfo {
   code: CurrencyCode
   symbol: string
   label: string
-  rate: number
 }
 
 export const currencies: CurrencyInfo[] = [
-  { code: "USD", symbol: "$", label: "ABD Dolari (USD)", rate: 1 },
-  { code: "EUR", symbol: "\u20AC", label: "Euro (EUR)", rate: 0.92 },
-  { code: "TRY", symbol: "\u20BA", label: "Turk Lirasi (TRY)", rate: 38.5 },
-  { code: "GBP", symbol: "\u00A3", label: "Ingiliz Sterlini (GBP)", rate: 0.79 },
+  { code: "TRY", symbol: "\u20BA", label: "Turk Lirasi (TRY)" },
 ]
 
 interface CurrencyContextType {
   currency: CurrencyInfo
-  setCurrencyCode: (code: CurrencyCode) => void
-  format: (amountInUsd: number, opts?: { compact?: boolean; decimals?: number }) => string
-  convert: (amountInUsd: number) => number
+  format: (amount: number, opts?: { compact?: boolean; decimals?: number }) => string
+  convert: (amount: number) => number
 }
 
 const CurrencyContext = createContext<CurrencyContextType | null>(null)
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const [currencyCode, setCurrencyCode] = useState<CurrencyCode>("TRY")
-  const currency = currencies.find((c) => c.code === currencyCode) ?? currencies[0]
+  const currency = currencies[0]
 
   const convert = useCallback(
-    (amountInUsd: number) => amountInUsd * currency.rate,
-    [currency.rate]
+    (amount: number) => amount,
+    []
   )
 
   const format = useCallback(
-    (amountInUsd: number, opts?: { compact?: boolean; decimals?: number }) => {
-      const converted = amountInUsd * currency.rate
+    (amount: number, opts?: { compact?: boolean; decimals?: number }) => {
       const decimals = opts?.decimals ?? 2
 
-      if (opts?.compact && converted >= 1000) {
+      if (opts?.compact && amount >= 1000) {
         const formatted = new Intl.NumberFormat("tr-TR", {
           notation: "compact",
           maximumFractionDigits: 1,
-        }).format(converted)
+        }).format(amount)
         return `${currency.symbol}${formatted}`
       }
 
       const formatted = new Intl.NumberFormat("tr-TR", {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
-      }).format(converted)
+      }).format(amount)
       return `${currency.symbol}${formatted}`
     },
-    [currency.rate, currency.symbol]
+    [currency.symbol]
   )
 
   return (
-    <CurrencyContext.Provider value={{ currency, setCurrencyCode, format, convert }}>
+    <CurrencyContext.Provider value={{ currency, format, convert }}>
       {children}
     </CurrencyContext.Provider>
   )
