@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     if (session.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -34,7 +34,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     if (session.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -62,7 +62,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     if (session.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }
@@ -90,7 +90,7 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     if (session.role !== 'admin') {
       return NextResponse.json({ error: 'Access denied' }, { status: 403 });
     }

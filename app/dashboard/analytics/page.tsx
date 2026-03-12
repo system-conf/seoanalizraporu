@@ -20,15 +20,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+import { useFilter } from "@/lib/filters"
+
 export default function AnalyticsPage() {
+  const { selectedAccount, selectedPlatform, dateRange } = useFilter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true)
       try {
-        const response = await fetch('/api/analytics')
+        const params = new URLSearchParams({
+          accountId: selectedAccount,
+          platform: selectedPlatform,
+          dateRange: dateRange
+        })
+        const response = await fetch(`/api/analytics?${params.toString()}`)
         if (!response.ok) {
           if (response.status === 401) {
             window.location.href = '/';
@@ -45,7 +54,7 @@ export default function AnalyticsPage() {
       }
     }
     fetchData()
-  }, [])
+  }, [selectedAccount, selectedPlatform, dateRange])
 
   if (loading) {
     return (

@@ -26,12 +26,19 @@ export async function GET() {
       }
     }
 
+    const { searchParams } = new URL(request.url);
+    const accountId = searchParams.get('accountId') || undefined;
+    const platform = searchParams.get('platform') || undefined;
+    const dateRange = searchParams.get('dateRange') || undefined;
+
+    const filters = { userId, accountId, platform, dateRange };
+
     const [hourly, device, geo, demo, stats] = await Promise.all([
-      getHourlyStats(userId),
-      getDeviceStats(userId),
-      getGeoStats(userId),
-      getDemographicStats(userId),
-      getDashboardStats(userId)
+      getHourlyStats(filters),
+      getDeviceStats(filters),
+      getGeoStats(filters),
+      getDemographicStats(filters),
+      getDashboardStats(filters)
     ]);
 
     return NextResponse.json({

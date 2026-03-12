@@ -10,12 +10,13 @@ export async function GET() {
       return NextResponse.json({ authenticated: false }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     return NextResponse.json({
       authenticated: true,
       user: {
         id: session.id,
         username: session.username,
+        full_name: session.full_name,
         role: session.role
       }
     });

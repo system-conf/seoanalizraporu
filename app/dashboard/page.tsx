@@ -8,16 +8,24 @@ import { CurrencyProvider } from "@/lib/currency"
 import { useEffect, useState } from "react"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { useFilter } from "@/lib/filters"
 
 function DashboardContent() {
+  const { selectedAccount, selectedPlatform, dateRange } = useFilter()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true)
       try {
-        const response = await fetch('/api/dashboard')
+        const params = new URLSearchParams({
+          accountId: selectedAccount,
+          platform: selectedPlatform,
+          dateRange: dateRange
+        })
+        const response = await fetch(`/api/dashboard?${params.toString()}`)
         if (!response.ok) throw new Error('Veri yuklenemedi')
         const result = await response.json()
         setData(result)
@@ -28,7 +36,7 @@ function DashboardContent() {
       }
     }
     fetchData()
-  }, [])
+  }, [selectedAccount, selectedPlatform, dateRange])
 
   if (loading) {
     return (

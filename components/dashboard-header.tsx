@@ -20,30 +20,57 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useFilter } from "@/lib/filters"
 
 export function DashboardHeader() {
   const router = useRouter()
   const [user, setUser] = useState({ fullName: "", initials: "AY" })
+  const [accounts, setAccounts] = useState<any[]>([])
+  const { 
+    selectedAccount, setSelectedAccount, 
+    selectedPlatform, setSelectedPlatform,
+    dateRange, setDateRange 
+  } = useFilter()
 
   useEffect(() => {
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('user_session='))
-      ?.split('=')[1];
-    
-    if (cookieValue) {
+    async function fetchUser() {
       try {
-        const session = JSON.parse(decodeURIComponent(cookieValue));
-        const fullName = session.full_name || "Kullanici";
-        const initials = fullName
-          .split(' ')
-          .map((n: string) => n[0])
-          .join('')
-          .toUpperCase()
-          .substring(0, 2);
-        setUser({ fullName, initials });
-      } catch (e) {}
+        const response = await fetch('/api/auth/me')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.authenticated && data.user) {
+            const fullName = data.user.full_name || "Kullanici";
+            const initials = fullName
+              .split(' ')
+              .map((n: string) => n[0])
+              .join('')
+              .toUpperCase()
+              .substring(0, 2);
+            setUser({ fullName, initials });
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch user', e);
+      }
     }
+    async function fetchAccounts() {
+      try {
+        const response = await fetch('/api/accounts')
+        if (response.ok) {
+          const data = await response.json()
+          setAccounts(data)
+          if (data.length > 0 && selectedAccount === "all") {
+            // Default to first account if none selected
+            // setSelectedAccount(data[0].id.toString()) 
+            // Actually "all" (Tümü) is often better for a dashboard, but let's keep "all" as an option
+          }
+        }
+      } catch (e) {
+        console.error('Failed to fetch accounts', e);
+      }
+    }
+    fetchUser();
+    fetchAccounts();
   }, []);
 
   const handleLogout = async () => {
@@ -58,15 +85,17 @@ export function DashboardHeader() {
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur-md">
       <div className="flex items-center gap-3">
-        {/* Existing Selects ... (Keep them but I'll only show the relevant part in replacement) */}
-        <Select defaultValue="main">
+        <Select value={selectedAccount} onValueChange={setSelectedAccount}>
           <SelectTrigger className="w-48 border-border bg-secondary">
             <SelectValue placeholder="Hesap secin" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="main">AdControl Ana Hesap</SelectItem>
-            <SelectItem value="secondary">Business Suite Pro</SelectItem>
-            <SelectItem value="tiktok">TikTok Business</SelectItem>
+            <SelectItem value="all">Tum Hesaplar</SelectItem>
+            {accounts.map((acc: any) => (
+              <SelectItem key={acc.id} value={acc.id.toString()}>
+                {acc.account_name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -74,8 +103,9 @@ export function DashboardHeader() {
           {["Tumu", "Google", "Meta", "TikTok"].map((platform) => (
             <button
               key={platform}
+              onClick={() => setSelectedPlatform(platform)}
               className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                platform === "Tumu"
+                selectedPlatform === platform
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground"
               }`}
@@ -85,7 +115,7 @@ export function DashboardHeader() {
           ))}
         </div>
 
-        <Select defaultValue="30d">
+        <Select value={dateRange} onValueChange={setDateRange}>
           <SelectTrigger className="w-36 border-border bg-secondary">
             <SelectValue placeholder="Tarih araligi" />
           </SelectTrigger>

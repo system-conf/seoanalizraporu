@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDashboardStats, getDailyTrend, getCampaigns, getPlatformComparison } from '@/lib/services/db-service';
 import { cookies } from 'next/headers';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get('user_session');
@@ -10,18 +10,25 @@ export async function GET() {
     let userId: number | undefined = undefined;
     
     if (sessionCookie) {
-      const session = JSON.parse(sessionCookie.value);
-      // If user is a customer, always filter by their ID
+      const session = JSON.parse(decodeURIComponent(sessionCookie.value));
       if (session.role === 'customer') {
         userId = session.id;
       }
-      // If admin, we don't filter (sees everything) unless we add specific logic
     }
 
-    const stats = await getDashboardStats(userId);
-    const trend = await getDailyTrend(userId);
-    const campaigns = await getCampaigns(userId);
-    const platforms = await getPlatformComparison(userId);
+    const { searchParams } = new URL(request.url);
+    const accountId = searchParams.get('accountId') || undefined;
+    const platform = searchParams.get('platform') || undefined;
+    const dateRange = searchParams.get('dateRange') || undefined;
+
+    const filters = { userId, accountId, platform, dateRange };
+
+    const [stats, trend, campaigns, platforms] = await Promise.all([
+      getDashboardStats(filters),
+      getDailyTrend(filters),
+      getCampaigns(filters),
+      getPlatformComparison(filters)
+    ]);
 
     return NextResponse.json({
       stats,

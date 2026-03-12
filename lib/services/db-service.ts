@@ -1,10 +1,55 @@
 import pool from '@/lib/db';
 
+export interface Filters {
+  userId?: number;
+  accountId?: string;
+  platform?: string;
+  dateRange?: string;
+}
+
+function applyFilters(query: string, params: any[], filters: Filters, tableAlias: string = 'a') {
+  let modifiedQuery = query;
+  
+  if (filters.userId) {
+    modifiedQuery += ` AND ${tableAlias}.user_id = ?`;
+    params.push(filters.userId);
+  }
+  
+  if (filters.accountId && filters.accountId !== 'all') {
+    if (tableAlias === 'a') { // for ad_accounts
+       modifiedQuery += ` AND ${tableAlias}.id = ?`;
+    } else { // for stats joining ad_accounts
+       modifiedQuery += ` AND a.id = ?`;
+    }
+    params.push(filters.accountId);
+  }
+  
+  if (filters.platform && filters.platform !== 'Tumu') {
+    modifiedQuery += ` AND ${tableAlias === 'a' ? 'a' : 'a'}.platform = ?`;
+    params.push(filters.platform);
+  }
+
+  if (filters.dateRange) {
+    let days = 30;
+    if (filters.dateRange === '7d') days = 7;
+    if (filters.dateRange === '90d') days = 90;
+    
+    if (filters.dateRange === 'ytd') {
+      modifiedQuery += ` AND stat_date >= DATE_FORMAT(NOW(), '%Y-01-01')`;
+    } else {
+      modifiedQuery += ` AND stat_date >= DATE_SUB(CURDATE(), INTERVAL ? DAY)`;
+      params.push(days);
+    }
+  }
+  
+  return modifiedQuery;
+}
+
 export async function getAdAccounts(userId?: number) {
-  let query = 'SELECT * FROM ad_accounts';
+  let query = 'SELECT * FROM ad_accounts WHERE 1=1';
   const params = [];
   if (userId) {
-    query += ' WHERE user_id = ?';
+    query += ' AND user_id = ?';
     params.push(userId);
   }
   query += ' ORDER BY account_name ASC';
@@ -12,7 +57,8 @@ export async function getAdAccounts(userId?: number) {
   return rows;
 }
 
-export async function getCampaigns(userId?: number) {
+export async function getCampaigns(filters: Filters) {
+  const params: any[] = [];
   let query = `
     SELECT 
       c.id, 
@@ -30,12 +76,11 @@ export async function getCampaigns(userId?: number) {
     FROM campaigns c
     JOIN ad_accounts a ON c.ad_account_id = a.id
     LEFT JOIN daily_stats s ON c.id = s.campaign_id
+    WHERE 1=1
   `;
-  const params = [];
-  if (userId) {
-    query += ' WHERE a.user_id = ?';
-    params.push(userId);
-  }
+  
+  query = applyFilters(query, params, filters, 'a');
+  
   query += `
     GROUP BY c.id
     ORDER BY c.created_at DESC
@@ -51,7 +96,8 @@ export async function getCampaigns(userId?: number) {
   }));
 }
 
-export async function getDashboardStats(userId?: number) {
+export async function getDashboardStats(filters: Filters) {
+  const params: any[] = [];
   let query = `
     SELECT 
       SUM(spend) as totalSpend,
@@ -62,12 +108,10 @@ export async function getDashboardStats(userId?: number) {
       SUM(revenue) as totalRevenue
     FROM daily_stats s
     JOIN ad_accounts a ON s.ad_account_id = a.id
+    WHERE 1=1
   `;
-  const params = [];
-  if (userId) {
-    query += ' WHERE a.user_id = ?';
-    params.push(userId);
-  }
+  
+  query = applyFilters(query, params, filters, 'a');
   
   const [rows]: any = await pool.execute(query, params);
   
@@ -89,7 +133,8 @@ export async function getDashboardStats(userId?: number) {
   ];
 }
 
-export async function getDailyTrend(userId?: number) {
+export async function getDailyTrend(filters: Filters) {
+  const params: any[] = [];
   let query = `
     SELECT 
       stat_date as date, 
@@ -98,12 +143,11 @@ export async function getDailyTrend(userId?: number) {
       SUM(CASE WHEN a.platform = 'TikTok' THEN s.spend ELSE 0 END) as tiktok
     FROM daily_stats s
     JOIN ad_accounts a ON s.ad_account_id = a.id
+    WHERE 1=1
   `;
-  const params = [];
-  if (userId) {
-    query += ' WHERE a.user_id = ?';
-    params.push(userId);
-  }
+  
+  query = applyFilters(query, params, filters, 'a');
+  
   query += `
     GROUP BY stat_date
     ORDER BY stat_date ASC
@@ -112,81 +156,81 @@ export async function getDailyTrend(userId?: number) {
   return rows;
 }
 
-export async function getPlatformComparison(userId?: number) {
+export async function getPlatformComparison(filters: Filters) {
+  const params: any[] = [];
   let query = `
     SELECT a.platform as name, SUM(s.spend) as value
     FROM daily_stats s
     JOIN ad_accounts a ON s.ad_account_id = a.id
+    WHERE 1=1
   `;
-  const params = [];
-  if (userId) {
-    query += ' WHERE a.user_id = ?';
-    params.push(userId);
-  }
+  
+  query = applyFilters(query, params, filters, 'a');
+  
   query += ' GROUP BY a.platform';
   const [rows] = await pool.execute(query, params);
   return rows;
 }
 
-export async function getHourlyStats(userId?: number) {
+export async function getHourlyStats(filters: Filters) {
+  const params: any[] = [];
   let query = `
     SELECT hour, SUM(clicks) as clicks, SUM(conversions) as conversions
     FROM hourly_stats h
     JOIN ad_accounts a ON h.ad_account_id = a.id
+    WHERE 1=1
   `;
-  const params = [];
-  if (userId) {
-    query += ' WHERE a.user_id = ?';
-    params.push(userId);
-  }
+  
+  query = applyFilters(query, params, filters, 'a');
+  
   query += ' GROUP BY hour ORDER BY hour ASC';
   const [rows] = await pool.execute(query, params);
   return rows;
 }
 
-export async function getDeviceStats(userId?: number) {
+export async function getDeviceStats(filters: Filters) {
+  const params: any[] = [];
   let query = `
     SELECT device_type as name, SUM(clicks) as value
     FROM device_stats d
     JOIN ad_accounts a ON d.ad_account_id = a.id
+    WHERE 1=1
   `;
-  const params = [];
-  if (userId) {
-    query += ' WHERE a.user_id = ?';
-    params.push(userId);
-  }
+  
+  query = applyFilters(query, params, filters, 'a');
+  
   query += ' GROUP BY device_type';
   const [rows] = await pool.execute(query, params);
   return rows;
 }
 
-export async function getGeoStats(userId?: number) {
+export async function getGeoStats(filters: Filters) {
+  const params: any[] = [];
   let query = `
     SELECT country, SUM(spend) as spend, SUM(conversions) as conversions
     FROM geo_stats g
     JOIN ad_accounts a ON g.ad_account_id = a.id
+    WHERE 1=1
   `;
-  const params = [];
-  if (userId) {
-    query += ' WHERE a.user_id = ?';
-    params.push(userId);
-  }
+  
+  query = applyFilters(query, params, filters, 'a');
+  
   query += ' GROUP BY country ORDER BY spend DESC';
   const [rows] = await pool.execute(query, params);
   return rows;
 }
 
-export async function getDemographicStats(userId?: number) {
+export async function getDemographicStats(filters: Filters) {
+  const params: any[] = [];
   let query = `
     SELECT age_range, gender, AVG(percentage) as percentage
     FROM demographic_stats d
     JOIN ad_accounts a ON d.ad_account_id = a.id
+    WHERE 1=1
   `;
-  const params = [];
-  if (userId) {
-    query += ' WHERE a.user_id = ?';
-    params.push(userId);
-  }
+  
+  query = applyFilters(query, params, filters, 'a');
+  
   query += ' GROUP BY age_range, gender ORDER BY age_range ASC';
   const [rows] = await pool.execute(query, params);
   return rows;

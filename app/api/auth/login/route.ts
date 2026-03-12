@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     cookieStore.set('user_session', JSON.stringify({
       id: user.id,
       username: user.username,
+      full_name: user.full_name,
       role: user.role
     }), {
       httpOnly: false,

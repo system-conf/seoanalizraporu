@@ -11,7 +11,7 @@ export async function GET() {
     let userId: number | undefined = undefined;
     
     if (sessionCookie) {
-      const session = JSON.parse(sessionCookie.value);
+      const session = JSON.parse(decodeURIComponent(sessionCookie.value));
       if (session.role === 'customer') {
         userId = session.id;
       }
@@ -30,7 +30,7 @@ export async function PATCH(request: Request) {
     const sessionCookie = cookieStore.get('user_session');
     
     if (!sessionCookie) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     if (session.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
     const { account_id, user_id } = await request.json();
