@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Zap, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react"
+import { Zap, Eye, EyeOff, CircleAlert, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -43,8 +43,8 @@ function MetaIcon() {
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
+  const [username, setUsername] = useState("admin")
+  const [password, setPassword] = useState("admin123")
   const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
@@ -138,11 +138,12 @@ export function LoginForm() {
             <div className="h-px flex-1 bg-border" />
           </div>
 
+
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {error && (
               <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
+                <CircleAlert className="h-4 w-4" />
                 <AlertTitle>Hata</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
