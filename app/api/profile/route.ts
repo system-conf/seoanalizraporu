@@ -12,7 +12,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const [rows]: any = await pool.execute(
       'SELECT id, username, full_name, role, email, phone, bio, notifications FROM users WHERE id = ?',
       [session.id]
@@ -38,8 +38,9 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const session = JSON.parse(sessionCookie.value);
+    const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const body = await request.json();
+    console.log('Profile Update Body:', body);
     const { full_name, email, phone, bio, notifications } = body;
 
     await pool.execute(
@@ -56,6 +57,7 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
+    console.error('Profile Update Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
