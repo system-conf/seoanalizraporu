@@ -80,3 +80,34 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+// Update user password (Admin only)
+export async function PATCH(request: Request) {
+  try {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('user_session');
+    
+    if (!sessionCookie) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const session = JSON.parse(sessionCookie.value);
+    if (session.role !== 'admin') {
+      return NextResponse.json({ error: 'Access denied' }, { status: 403 });
+    }
+
+    const { id, password } = await request.json();
+
+    if (!id || !password) {
+      return NextResponse.json({ error: 'Eksik bilgiler' }, { status: 400 });
+    }
+
+    await pool.execute(
+      'UPDATE users SET password = ? WHERE id = ?',
+      [password, id]
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

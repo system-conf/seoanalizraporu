@@ -9,7 +9,10 @@ import {
   ShieldCheck,
   Loader2,
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  KeyRound
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -46,8 +49,12 @@ export default function UsersPage() {
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [fullName, setFullName] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
+  const [showNewPassword, setShowNewPassword] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isAssignOpen, setIsAssignOpen] = useState(false)
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
 
   const fetchData = async () => {
@@ -141,6 +148,37 @@ export default function UsersPage() {
     }
   }
 
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedUser) return
+    
+    setActionLoading(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch("/api/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedUser.id, password: newPassword }),
+      })
+
+      if (response.ok) {
+        setSuccess("Sifre basariyla guncellendi")
+        setNewPassword("")
+        setIsPasswordDialogOpen(false)
+        setShowNewPassword(false)
+      } else {
+        const data = await response.json()
+        setError(data.error || "Sifre guncellenemedi")
+      }
+    } catch (err) {
+      setError("Bir hata olustu")
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
   const handleDeleteUser = async (id: number) => {
     if (!confirm("Bu kullaniciyi silmek istediginize emin misiniz?")) return
 
@@ -226,15 +264,24 @@ export default function UsersPage() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Sifre</Label>
-                <Input 
-                  id="password" 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••" 
-                  required 
-                  className="bg-secondary/50"
-                />
+                <div className="relative">
+                  <Input 
+                    id="password" 
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••" 
+                    required 
+                    className="bg-secondary/50 pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                  </button>
+                </div>
               </div>
               <DialogFooter className="pt-4">
                 <Button type="submit" className="w-full" disabled={actionLoading}>
@@ -377,15 +424,73 @@ export default function UsersPage() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-muted-foreground group-hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
-                        onClick={() => handleDeleteUser(user.id)}
-                        disabled={actionLoading || user.role === "admin"}
-                      >
-                        <Trash2 className="size-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        <Dialog open={isPasswordDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
+                          setIsPasswordDialogOpen(open)
+                          if(open) {
+                            setSelectedUser(user)
+                            setNewPassword("")
+                            setShowNewPassword(false)
+                          }
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
+                              title="Sifre Degistir"
+                            >
+                              <KeyRound className="size-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[400px]">
+                            <DialogHeader>
+                              <DialogTitle>Sifre Guncelle: {user.full_name}</DialogTitle>
+                              <DialogDescription>Musteri icin yeni bir giris sifresi belirleyin.</DialogDescription>
+                            </DialogHeader>
+                            <form onSubmit={handleUpdatePassword} className="space-y-4 pt-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="newPassword">Yeni Sifre</Label>
+                                <div className="relative">
+                                  <Input 
+                                    id="newPassword" 
+                                    type={showNewPassword ? "text" : "password"}
+                                    value={newPassword}
+                                    onChange={(e) => setNewPassword(e.target.value)}
+                                    placeholder="••••••••" 
+                                    required 
+                                    className="bg-secondary/50 pr-10"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowNewPassword(!showNewPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                  >
+                                    {showNewPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+                                  </button>
+                                </div>
+                              </div>
+                              <DialogFooter className="pt-2">
+                                <Button type="submit" className="w-full" disabled={actionLoading}>
+                                  {actionLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                  Sifreyi Guncelle
+                                </Button>
+                              </DialogFooter>
+                            </form>
+                          </DialogContent>
+                        </Dialog>
+
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-muted-foreground group-hover:text-destructive opacity-0 group-hover:opacity-100 transition-all"
+                          onClick={() => handleDeleteUser(user.id)}
+                          disabled={actionLoading || user.role === "admin"}
+                          title="Kullaniciyi Sil"
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -24,18 +24,16 @@ export function AppSidebar() {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    // Basic way to check role from cookie on client side
-    const cookieValue = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('user_session='))
-      ?.split('=')[1];
-    
-    if (cookieValue) {
+    const checkAuth = async () => {
       try {
-        const session = JSON.parse(decodeURIComponent(cookieValue));
-        setIsAdmin(session.role === 'admin');
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          setIsAdmin(data.user?.role === 'admin');
+        }
       } catch (e) {}
-    }
+    };
+    checkAuth();
   }, []);
 
   const navItems = [
