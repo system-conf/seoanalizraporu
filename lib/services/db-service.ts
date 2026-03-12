@@ -127,3 +127,67 @@ export async function getPlatformComparison(userId?: number) {
   const [rows] = await pool.execute(query, params);
   return rows;
 }
+
+export async function getHourlyStats(userId?: number) {
+  let query = `
+    SELECT hour, SUM(clicks) as clicks, SUM(conversions) as conversions
+    FROM hourly_stats h
+    JOIN ad_accounts a ON h.ad_account_id = a.id
+  `;
+  const params = [];
+  if (userId) {
+    query += ' WHERE a.user_id = ?';
+    params.push(userId);
+  }
+  query += ' GROUP BY hour ORDER BY hour ASC';
+  const [rows] = await pool.execute(query, params);
+  return rows;
+}
+
+export async function getDeviceStats(userId?: number) {
+  let query = `
+    SELECT device_type as name, SUM(clicks) as value
+    FROM device_stats d
+    JOIN ad_accounts a ON d.ad_account_id = a.id
+  `;
+  const params = [];
+  if (userId) {
+    query += ' WHERE a.user_id = ?';
+    params.push(userId);
+  }
+  query += ' GROUP BY device_type';
+  const [rows] = await pool.execute(query, params);
+  return rows;
+}
+
+export async function getGeoStats(userId?: number) {
+  let query = `
+    SELECT country, SUM(spend) as spend, SUM(conversions) as conversions
+    FROM geo_stats g
+    JOIN ad_accounts a ON g.ad_account_id = a.id
+  `;
+  const params = [];
+  if (userId) {
+    query += ' WHERE a.user_id = ?';
+    params.push(userId);
+  }
+  query += ' GROUP BY country ORDER BY spend DESC';
+  const [rows] = await pool.execute(query, params);
+  return rows;
+}
+
+export async function getDemographicStats(userId?: number) {
+  let query = `
+    SELECT age_range, gender, AVG(percentage) as percentage
+    FROM demographic_stats d
+    JOIN ad_accounts a ON d.ad_account_id = a.id
+  `;
+  const params = [];
+  if (userId) {
+    query += ' WHERE a.user_id = ?';
+    params.push(userId);
+  }
+  query += ' GROUP BY age_range, gender ORDER BY age_range ASC';
+  const [rows] = await pool.execute(query, params);
+  return rows;
+}

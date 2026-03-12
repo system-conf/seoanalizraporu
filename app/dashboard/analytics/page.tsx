@@ -28,7 +28,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     async function fetchData() {
       try {
-        const response = await fetch('/api/dashboard')
+        const response = await fetch('/api/analytics')
         if (!response.ok) {
           if (response.status === 401) {
             window.location.href = '/';
@@ -81,25 +81,34 @@ export default function AnalyticsPage() {
     { stage: "Gelir", value: totalRevenue, fill: "var(--color-chart-4)" },
   ]
 
-  const hourlyData = Array.from({ length: 24 }, (_, i) => ({
-    hour: `${i}:00`,
-    clicks: Math.floor(Math.random() * 5000 + 2000),
-    conversions: Math.floor(Math.random() * 200 + 50),
+  const hourlyData = data.hourly.map((h: any) => ({
+    hour: `${h.hour}:00`,
+    clicks: h.clicks,
+    conversions: h.conversions,
   }))
 
-  const deviceData = [
-    { name: "Mobil", value: 58, fill: "var(--color-chart-1)" },
-    { name: "Masaustu", value: 32, fill: "var(--color-chart-2)" },
-    { name: "Tablet", value: 10, fill: "var(--color-chart-3)" },
-  ]
+  const deviceData = data.device.map((d: any, index: number) => ({
+    name: d.name,
+    value: Number(d.value),
+    fill: `var(--color-chart-${(index % 4) + 1})`
+  }))
 
-  const geoData = [
-    { country: "Turkiye", spend: 24500, conversions: 8200 },
-    { country: "Almanya", spend: 8200, conversions: 2800 },
-    { country: "Ingiltere", spend: 6100, conversions: 1900 },
-    { country: "Fransa", spend: 4800, conversions: 1200 },
-    { country: "Hollanda", spend: 3100, conversions: 890 },
-  ]
+  const geoData = data.geo.map((g: any) => ({
+    country: g.country,
+    spend: Number(g.spend),
+    conversions: Number(g.conversions)
+  }))
+
+  const ageData = data.demo.reduce((acc: any[], curr: any) => {
+    let existing = acc.find(a => a.age === curr.age_range);
+    if (!existing) {
+      existing = { age: curr.age_range, male: 0, female: 0 };
+      acc.push(existing);
+    }
+    if (curr.gender === 'Male') existing.male = Number(curr.percentage);
+    if (curr.gender === 'Female') existing.female = Number(curr.percentage);
+    return acc;
+  }, [])
   function CustomTooltip({
     active,
     payload,
@@ -300,13 +309,7 @@ export default function AnalyticsPage() {
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart
-                      data={[
-                        { age: "18-24", male: 22, female: 28 },
-                        { age: "25-34", male: 30, female: 35 },
-                        { age: "35-44", male: 25, female: 20 },
-                        { age: "45-54", male: 15, female: 12 },
-                        { age: "55+", male: 8, female: 5 },
-                      ]}
+                      data={ageData}
                       barGap={2}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />

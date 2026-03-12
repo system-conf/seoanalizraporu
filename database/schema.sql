@@ -62,6 +62,48 @@ CREATE TABLE IF NOT EXISTS daily_stats (
     INDEX (ad_account_id, stat_date)
 ) ENGINE=InnoDB;
 
+-- 4. Hourly Stats Table
+CREATE TABLE IF NOT EXISTS hourly_stats (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ad_account_id INT NOT NULL,
+    stat_date DATE NOT NULL,
+    hour INT NOT NULL,
+    clicks INT DEFAULT 0,
+    conversions INT DEFAULT 0,
+    FOREIGN KEY (ad_account_id) REFERENCES ad_accounts(id) ON DELETE CASCADE,
+    INDEX (stat_date, hour)
+) ENGINE=InnoDB;
+
+-- 5. Device Stats Table
+CREATE TABLE IF NOT EXISTS device_stats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ad_account_id INT NOT NULL,
+    device_type VARCHAR(50) NOT NULL,
+    clicks INT DEFAULT 0,
+    percentage DECIMAL(5, 2) DEFAULT 0.00,
+    FOREIGN KEY (ad_account_id) REFERENCES ad_accounts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 6. Geo Stats Table
+CREATE TABLE IF NOT EXISTS geo_stats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ad_account_id INT NOT NULL,
+    country VARCHAR(100) NOT NULL,
+    spend DECIMAL(15, 2) DEFAULT 0.00,
+    conversions INT DEFAULT 0,
+    FOREIGN KEY (ad_account_id) REFERENCES ad_accounts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 7. Demographic Stats Table
+CREATE TABLE IF NOT EXISTS demographic_stats (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    ad_account_id INT NOT NULL,
+    age_range VARCHAR(20) NOT NULL,
+    gender ENUM('Male', 'Female', 'Unknown') NOT NULL,
+    percentage DECIMAL(5, 2) DEFAULT 0.00,
+    FOREIGN KEY (ad_account_id) REFERENCES ad_accounts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Sample Data for Testing
 INSERT INTO users (username, password, full_name, role)
 VALUES 
