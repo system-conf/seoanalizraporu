@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getAdAccounts } from '@/lib/services/db-service';
+import pool from '@/lib/db';
 import { cookies } from 'next/headers';
 
 export async function GET() {
