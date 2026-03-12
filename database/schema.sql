@@ -8,6 +8,10 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     full_name VARCHAR(255),
     role ENUM('admin', 'customer') DEFAULT 'customer',
+    email VARCHAR(255),
+    phone VARCHAR(20),
+    bio TEXT,
+    notifications JSON,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
