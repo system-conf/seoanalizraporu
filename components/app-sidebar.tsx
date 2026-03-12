@@ -12,21 +12,51 @@ import {
   Settings,
   LogOut,
   Zap,
+  Users,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const navItems = [
-  { label: "Kontrol Paneli", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Hesaplar", href: "/dashboard/accounts", icon: Link2 },
-  { label: "Kampanyalar", href: "/dashboard/campaigns", icon: Megaphone },
-  { label: "Kampanya Olustur", href: "/dashboard/campaigns/create", icon: PlusCircle },
-  { label: "Raporlar", href: "/dashboard/reports", icon: FileBarChart },
-  { label: "Analitik", href: "/dashboard/analytics", icon: BarChart3 },
-  { label: "Ayarlar", href: "/dashboard/settings", icon: Settings },
-]
+import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    // Basic way to check role from cookie on client side
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('user_session='))
+      ?.split('=')[1];
+    
+    if (cookieValue) {
+      try {
+        const session = JSON.parse(decodeURIComponent(cookieValue));
+        setIsAdmin(session.role === 'admin');
+      } catch (e) {}
+    }
+  }, []);
+
+  const navItems = [
+    { label: "Kontrol Paneli", href: "/dashboard", icon: LayoutDashboard },
+    { label: "Hesaplar", href: "/dashboard/accounts", icon: Link2 },
+    { label: "Kampanyalar", href: "/dashboard/campaigns", icon: Megaphone },
+    { label: "Kampanya Olustur", href: "/dashboard/campaigns/create", icon: PlusCircle },
+    { label: "Raporlar", href: "/dashboard/reports", icon: FileBarChart },
+    { label: "Analitik", href: "/dashboard/analytics", icon: BarChart3 },
+    ...(isAdmin ? [{ label: "Musteriler", href: "/dashboard/users", icon: Users }] : []),
+    { label: "Ayarlar", href: "/dashboard/settings", icon: Settings },
+  ]
+
+  const handleLogout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      router.push('/');
+    } catch (e) {
+      console.error('Logout failed');
+    }
+  }
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
@@ -66,7 +96,10 @@ export function AppSidebar() {
       </nav>
 
       <div className="border-t border-sidebar-border px-3 py-4">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground">
+        <button 
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+        >
           <LogOut className="size-4 shrink-0" />
           Cikis Yap
         </button>

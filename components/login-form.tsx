@@ -2,11 +2,12 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { Zap, Eye, EyeOff } from "lucide-react"
+import { Zap, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 function GoogleIcon() {
   return (
@@ -42,14 +43,35 @@ function MetaIcon() {
 export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setTimeout(() => {
-      router.push("/dashboard")
-    }, 800)
+    setError(null)
+    
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        router.push('/dashboard')
+      } else {
+        setError(data.error || 'Giris basarisiz')
+      }
+    } catch (err) {
+      setError('Sistem hatasi. Lutfen sonra tekrar deneyin.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -93,6 +115,7 @@ export function LoginForm() {
           <div className="flex gap-3">
             <Button
               variant="outline"
+              type="button"
               className="flex-1 gap-2 border-border bg-secondary text-foreground hover:bg-accent"
             >
               <GoogleIcon />
@@ -100,6 +123,7 @@ export function LoginForm() {
             </Button>
             <Button
               variant="outline"
+              type="button"
               className="flex-1 gap-2 border-border bg-secondary text-foreground hover:bg-accent"
             >
               <MetaIcon />
@@ -110,22 +134,32 @@ export function LoginForm() {
           {/* Divider */}
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">veya e-posta ile devam edin</span>
+            <span className="text-xs text-muted-foreground">veya bilgilerinizle devam edin</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Hata</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             <div className="flex flex-col gap-2">
-              <Label htmlFor="email" className="text-sm text-foreground">
-                E-posta adresi
+              <Label htmlFor="username" className="text-sm text-foreground">
+                Kullanici adi
               </Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="ahmet@sirket.com"
+                id="username"
+                type="text"
+                placeholder="kullanici_adi"
                 className="border-border bg-secondary text-foreground placeholder:text-muted-foreground"
-                defaultValue="ahmet@adcontrol.com"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
               />
             </div>
 
@@ -139,7 +173,9 @@ export function LoginForm() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Sifrenizi girin"
                   className="border-border bg-secondary pr-10 text-foreground placeholder:text-muted-foreground"
-                  defaultValue="password123"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
                 <button
                   type="button"
@@ -181,7 +217,7 @@ export function LoginForm() {
             >
               {isLoading ? (
                 <div className="flex items-center gap-2">
-                  <div className="size-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                  <Loader2 className="size-4 animate-spin text-primary-foreground" />
                   Giris yapiliyor...
                 </div>
               ) : (

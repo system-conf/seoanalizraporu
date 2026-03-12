@@ -9,11 +9,14 @@ import {
   Megaphone,
   DollarSign,
   Clock,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { connectedAccounts } from "@/lib/mock-data"
+import { useEffect, useState } from "react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -57,28 +60,47 @@ function TikTokIcon({ className }: { className?: string }) {
   )
 }
 
-const platformIcons: Record<string, React.FC<{ className?: string }>> = {
-  "Google Ads": GoogleIcon,
-  "Meta Ads": MetaIcon,
-  "TikTok Ads": TikTokIcon,
-}
-
-const statusConfig: Record<string, { icon: React.FC<{ className?: string }>; color: string }> = {
-  "Bagli": {
-    icon: CheckCircle2,
-    color: "bg-success/15 text-success border-success/20",
-  },
-  "Token Sona Eriyor": {
-    icon: AlertTriangle,
-    color: "bg-warning/15 text-warning border-warning/20",
-  },
-  "Hata": {
-    icon: XCircle,
-    color: "bg-destructive/15 text-destructive border-destructive/20",
-  },
-}
-
 export default function AccountsPage() {
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/accounts')
+        if (!response.ok) throw new Error('Hesaplar yuklenemedi')
+        const data = await response.json()
+        setAccounts(data)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Hesaplar yukleniyor...</span>
+      </div>
+    )
+  }
+
+  // Count accounts by platform
+  const googleCount = accounts.filter(a => a.platform === 'Google').length
+  const metaCount = accounts.filter(a => a.platform === 'Meta').length
+  const tiktokCount = accounts.filter(a => a.platform === 'TikTok').length
+
+  const platforms = [
+    { name: "Google Ads", icon: GoogleIcon, connected: googleCount > 0, count: googleCount },
+    { name: "Meta Ads", icon: MetaIcon, connected: metaCount > 0, count: metaCount },
+    { name: "TikTok Ads", icon: TikTokIcon, connected: tiktokCount > 0, count: tiktokCount },
+  ]
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -90,13 +112,17 @@ export default function AccountsPage() {
         </p>
       </div>
 
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Hata</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Connect buttons */}
       <div className="grid gap-4 sm:grid-cols-3">
-        {[
-          { name: "Google Ads", icon: GoogleIcon, connected: true },
-          { name: "Meta Ads", icon: MetaIcon, connected: true },
-          { name: "TikTok Ads", icon: TikTokIcon, connected: true },
-        ].map((platform) => (
+        {platforms.map((platform) => (
           <Card
             key={platform.name}
             className="border-border bg-card transition-shadow hover:shadow-lg hover:shadow-primary/5"
@@ -108,7 +134,7 @@ export default function AccountsPage() {
               <div className="flex-1">
                 <p className="font-medium text-foreground">{platform.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {platform.connected ? "Hesap bagli" : "Bagli degil"}
+                  {platform.connected ? `${platform.count} Hesap bagli` : "Bagli degil"}
                 </p>
               </div>
               <Button
@@ -130,88 +156,64 @@ export default function AccountsPage() {
       {/* Connected account cards */}
       <div className="flex flex-col gap-4">
         <h2 className="text-lg font-semibold text-foreground">Hesap Detaylari</h2>
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {connectedAccounts.map((account) => {
-            const PlatformIcon = platformIcons[account.platform]
-            const statusInfo = statusConfig[account.status]
-            const StatusIcon = statusInfo.icon
-            return (
-              <Card
-                key={account.id}
-                className="border-border bg-card transition-shadow hover:shadow-lg hover:shadow-primary/5"
-              >
-                <CardContent className="flex flex-col gap-4 p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-lg bg-secondary">
-                        <PlatformIcon className="size-5" />
+        {accounts.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-border p-8 text-center">
+            <p className="text-muted-foreground text-sm">Henüz hesap bağlamadınız.</p>
+          </div>
+        ) : (
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            {accounts.map((account) => {
+              const PlatformIcon = account.platform === 'Google' ? GoogleIcon : (account.platform === 'Meta' ? MetaIcon : TikTokIcon)
+              return (
+                <Card
+                  key={account.id}
+                  className="border-border bg-card transition-shadow hover:shadow-lg hover:shadow-primary/5"
+                >
+                  <CardContent className="flex flex-col gap-4 p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex size-10 items-center justify-center rounded-lg bg-secondary">
+                          <PlatformIcon className="size-5" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-foreground">
+                            {account.account_name}
+                          </p>
+                          <p className="font-mono text-xs text-muted-foreground">
+                            {account.platform_id}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-foreground">
-                          {account.accountName}
-                        </p>
-                        <p className="font-mono text-xs text-muted-foreground">
-                          {account.accountId}
-                        </p>
-                      </div>
+                      <Badge variant="outline" className="bg-success/15 text-success border-success/20">
+                        <CheckCircle2 className="mr-1 size-3" />
+                        Bagli
+                      </Badge>
                     </div>
-                    <Badge variant="outline" className={statusInfo.color}>
-                      <StatusIcon className="mr-1 size-3" />
-                      {account.status}
-                    </Badge>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-3 rounded-lg bg-secondary/50 p-3">
-                    <div className="flex flex-col items-center gap-1">
-                      <DollarSign className="size-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">
-                        {account.spend}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">Harcama</span>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 border-border text-muted-foreground hover:text-foreground"
+                      >
+                        <RefreshCw className="size-3" />
+                        Senkronize Et
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 gap-2 border-border text-muted-foreground hover:text-foreground"
+                      >
+                        <ExternalLink className="size-3" />
+                        Ac
+                      </Button>
                     </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <Megaphone className="size-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">
-                        {account.campaigns}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        Kampanya
-                      </span>
-                    </div>
-                    <div className="flex flex-col items-center gap-1">
-                      <Clock className="size-4 text-muted-foreground" />
-                      <span className="text-sm font-medium text-foreground">
-                        {account.lastSync}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        Son Senk.
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-2 border-border text-muted-foreground hover:text-foreground"
-                    >
-                      <RefreshCw className="size-3" />
-                      Senkronize Et
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="flex-1 gap-2 border-border text-muted-foreground hover:text-foreground"
-                    >
-                      <ExternalLink className="size-3" />
-                      Ac
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )
-          })}
-        </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

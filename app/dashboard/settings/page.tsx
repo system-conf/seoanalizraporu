@@ -14,7 +14,29 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+import { useEffect, useState } from "react"
+
 export default function SettingsPage() {
+  const [user, setUser] = useState({ fullName: "", username: "", role: "" })
+
+  useEffect(() => {
+    const cookieValue = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('user_session='))
+      ?.split('=')[1];
+    
+    if (cookieValue) {
+      try {
+        const session = JSON.parse(decodeURIComponent(cookieValue));
+        setUser({ 
+          fullName: session.full_name || "", 
+          username: session.username || "",
+          role: session.role || "" 
+        });
+      } catch (e) {}
+    }
+  }, []);
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -35,29 +57,32 @@ export default function SettingsPage() {
               <Label htmlFor="name" className="text-foreground">Ad Soyad</Label>
               <Input
                 id="name"
-                defaultValue="Ahmet Yilmaz"
-                className="border-border bg-secondary text-foreground"
+                value={user.fullName}
+                readOnly
+                className="border-border bg-secondary text-foreground opacity-70"
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="settingsEmail" className="text-foreground">E-posta</Label>
+              <Label htmlFor="username" className="text-foreground">Kullanici Adi</Label>
               <Input
-                id="settingsEmail"
-                defaultValue="ahmet@adcontrol.com"
-                className="border-border bg-secondary text-foreground"
+                id="username"
+                value={user.username}
+                readOnly
+                className="border-border bg-secondary text-foreground opacity-70"
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="company" className="text-foreground">Sirket</Label>
+              <Label htmlFor="role" className="text-foreground">Yetki Seviyesi</Label>
               <Input
-                id="company"
-                defaultValue="AdControl A.S."
-                className="border-border bg-secondary text-foreground"
+                id="role"
+                value={user.role === 'admin' ? 'Yonetici' : 'Musteri'}
+                readOnly
+                className="border-border bg-secondary text-foreground opacity-70 uppercase"
               />
             </div>
-            <Button className="w-fit bg-primary text-primary-foreground hover:bg-primary/90">
-              Degisiklikleri Kaydet
-            </Button>
+            <p className="text-[10px] text-muted-foreground italic">
+              * Profil bilgileri su an icin sadece okunabilirdir.
+            </p>
           </CardContent>
         </Card>
 

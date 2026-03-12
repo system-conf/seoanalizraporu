@@ -18,7 +18,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { campaignsData, type Campaign } from "@/lib/mock-data"
+
+interface Campaign {
+  id: string
+  name: string
+  image_url?: string
+  platform: string
+  status: "Aktif" | "Duraklatildi" | "Tamamlandi"
+  budget: number
+  spend: number
+  clicks: number
+  add_to_cart: number
+  conversions: number
+  ctr: number
+  cpc: number
+  roas: number
+}
 
 const platformColors: Record<string, string> = {
   Google: "bg-chart-1/15 text-chart-1 border-chart-1/20",
@@ -32,7 +47,7 @@ const statusColors: Record<string, string> = {
   Tamamlandi: "bg-muted text-muted-foreground border-border",
 }
 
-export function CampaignTable({ campaigns = campaignsData }: { campaigns?: Campaign[] }) {
+export function CampaignTable({ campaigns = [] }: { campaigns?: Campaign[] }) {
   return (
     <Card className="border-border bg-card">
       <CardHeader className="flex-row items-center justify-between pb-4">
@@ -51,6 +66,12 @@ export function CampaignTable({ campaigns = campaignsData }: { campaigns?: Campa
                 <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
                   Kampanya
                 </TableHead>
+                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground w-[80px]">
+                  Gorsel
+                </TableHead>
+                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
+                  Kampanya
+                </TableHead>
                 <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
                   Platform
                 </TableHead>
@@ -61,10 +82,10 @@ export function CampaignTable({ campaigns = campaignsData }: { campaigns?: Campa
                   Butce
                 </TableHead>
                 <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground">
-                  Harcama
+                  Sepet
                 </TableHead>
                 <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground">
-                  TO
+                  Donusum
                 </TableHead>
                 <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground">
                   ROAS
@@ -78,6 +99,19 @@ export function CampaignTable({ campaigns = campaignsData }: { campaigns?: Campa
                   key={campaign.id}
                   className="border-border transition-colors hover:bg-accent/50"
                 >
+                  <TableCell>
+                    {campaign.image_url ? (
+                      <img 
+                        src={campaign.image_url} 
+                        alt={campaign.name} 
+                        className="h-10 w-12 rounded object-cover border border-border"
+                      />
+                    ) : (
+                      <div className="h-10 w-12 rounded bg-muted flex items-center justify-center text-[10px] text-muted-foreground">
+                        Yok
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="font-medium text-foreground">
                     {campaign.name}
                   </TableCell>
@@ -98,16 +132,16 @@ export function CampaignTable({ campaigns = campaignsData }: { campaigns?: Campa
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-foreground">
-                    ${campaign.budget.toLocaleString()}
+                    ₺{Number(campaign.budget).toLocaleString()}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-foreground">
-                    ${campaign.spend.toLocaleString()}
+                    {campaign.add_to_cart || 0}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-foreground">
-                    %{campaign.ctr}
+                    {campaign.conversions || 0}
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-foreground">
-                    {campaign.roas}x
+                    {Number(campaign.roas).toFixed(2)}x
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

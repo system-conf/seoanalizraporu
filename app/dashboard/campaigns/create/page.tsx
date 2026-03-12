@@ -249,7 +249,7 @@ export default function CreateCampaignPage() {
                   <div className="flex items-center justify-between">
                     <Label className="text-foreground">Butce Miktari</Label>
                     <span className="font-mono text-lg font-bold text-primary">
-                      ${formData.budget.toLocaleString()}
+                      ₺{formData.budget.toLocaleString()}
                     </span>
                   </div>
                   <Slider
@@ -261,8 +261,8 @@ export default function CreateCampaignPage() {
                     className="py-2"
                   />
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>$100</span>
-                    <span>$50.000</span>
+                    <span>₺100</span>
+                    <span>₺50.000</span>
                   </div>
                 </div>
 
@@ -468,7 +468,7 @@ export default function CreateCampaignPage() {
                   { label: "Platform", value: platforms.find((p) => p.id === formData.platform)?.name || "Secilmedi" },
                   { label: "Hedef", value: objectives.find((o) => o.id === formData.objective)?.name || "Secilmedi" },
                   { label: "Kampanya Adi", value: formData.campaignName || "Belirlenmedi" },
-                  { label: "Butce", value: `$${formData.budget.toLocaleString()} (${formData.budgetType === "daily" ? "gunluk" : "toplam"})` },
+                  { label: "Butce", value: `₺${formData.budget.toLocaleString()} (${formData.budgetType === "daily" ? "gunluk" : "toplam"})` },
                   { label: "Yas Araligi", value: `${formData.ageMin} - ${formData.ageMax}` },
                   { label: "Cinsiyet", value: formData.gender === "all" ? "Tumu" : formData.gender === "male" ? "Erkek" : "Kadin" },
                   { label: "Konumlar", value: formData.locations || "Belirlenmedi" },

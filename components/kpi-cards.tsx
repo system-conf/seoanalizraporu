@@ -2,10 +2,21 @@
 
 import { TrendingUp, TrendingDown } from "lucide-react"
 import { Area, AreaChart, ResponsiveContainer } from "recharts"
+import { useCurrency } from "@/lib/currency"
 import { Card, CardContent } from "@/components/ui/card"
-import { kpiData } from "@/lib/mock-data"
 
-export function KpiCards() {
+interface KpiData {
+  title: string
+  rawValue: number
+  trend: "up" | "down"
+  percentage: string
+  isCurrency?: boolean
+  chartData: number[] | { value: number }[]
+}
+
+export function KpiCards({ kpiData }: { kpiData: KpiData[] }) {
+  const { format } = useCurrency()
+
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       {kpiData.map((kpi) => (
@@ -20,7 +31,7 @@ export function KpiCards() {
             <div className="flex items-end justify-between gap-2">
               <div className="flex flex-col gap-1">
                 <span className="text-2xl font-bold tracking-tight text-foreground">
-                  {kpi.value}
+                  {kpi.isCurrency ? format(kpi.rawValue, { compact: true }) : (kpi.rawValue >= 1000000 ? `${(kpi.rawValue / 1000000).toFixed(1)}M` : (kpi.rawValue >= 1000 ? `${(kpi.rawValue / 1000).toFixed(0)}k` : kpi.rawValue))}
                 </span>
                 <div className="flex items-center gap-1">
                   {kpi.trend === "up" ? (
@@ -30,16 +41,16 @@ export function KpiCards() {
                   )}
                   <span
                     className={`text-xs font-medium ${
-                      kpi.trend === "up" ? "text-success" : "text-success"
+                      kpi.trend === "up" ? "text-success" : "text-destructive"
                     }`}
                   >
-                    {kpi.change}
+                    {kpi.percentage}
                   </span>
                 </div>
               </div>
               <div className="h-10 w-20">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={kpi.sparkline.map((v, i) => ({ v, i }))}>
+                  <AreaChart data={(kpi.chartData || []).map((v, i) => typeof v === 'number' ? { value: v, i } : { ...v, i })}>
                     <defs>
                       <linearGradient
                         id={`sparkGradient-${kpi.title.replace(/\s/g, "")}`}
@@ -50,20 +61,20 @@ export function KpiCards() {
                       >
                         <stop
                           offset="0%"
-                          stopColor="var(--color-primary)"
+                          stopColor={kpi.trend === "up" ? "var(--color-success)" : "var(--color-destructive)"}
                           stopOpacity={0.3}
                         />
                         <stop
                           offset="100%"
-                          stopColor="var(--color-primary)"
+                          stopColor={kpi.trend === "up" ? "var(--color-success)" : "var(--color-destructive)"}
                           stopOpacity={0}
                         />
                       </linearGradient>
                     </defs>
                     <Area
                       type="monotone"
-                      dataKey="v"
-                      stroke="var(--color-primary)"
+                      dataKey={typeof (kpi.chartData?.[0]) === 'number' ? "value" : "value"}
+                      stroke={kpi.trend === "up" ? "var(--color-success)" : "var(--color-destructive)"}
                       strokeWidth={1.5}
                       fill={`url(#sparkGradient-${kpi.title.replace(/\s/g, "")})`}
                       dot={false}

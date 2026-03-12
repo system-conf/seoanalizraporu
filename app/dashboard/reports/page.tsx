@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import {
   FileText,
   FileSpreadsheet,
@@ -8,10 +8,13 @@ import {
   ChevronDown,
   ChevronUp,
   Filter,
+  Loader2,
+  AlertCircle,
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   Select,
   SelectContent,
@@ -27,7 +30,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { reportsData } from "@/lib/mock-data"
 
 const platformColors: Record<string, string> = {
   Google: "bg-chart-1/15 text-chart-1 border-chart-1/20",
@@ -35,13 +37,38 @@ const platformColors: Record<string, string> = {
   TikTok: "bg-chart-3/15 text-chart-3 border-chart-3/20",
 }
 
-type SortKey = "campaign" | "impressions" | "clicks" | "ctr" | "conversions" | "spend" | "revenue" | "roas"
+type SortKey = "name" | "impressions" | "clicks" | "ctr" | "conversions" | "spend" | "revenue" | "roas"
 
 export default function ReportsPage() {
+  const [reportsData, setReportsData] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [platformFilter, setPlatformFilter] = useState("all")
   const [sortKey, setSortKey] = useState<SortKey>("roas")
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc")
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/dashboard')
+        if (!response.ok) {
+          if (response.status === 401) {
+             window.location.href = '/';
+             return;
+          }
+          throw new Error('Veri yuklenemedi')
+        }
+        const result = await response.json()
+        setReportsData(result.campaigns)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -67,14 +94,35 @@ export default function ReportsPage() {
 
   const totals = filteredData.reduce(
     (acc, r) => ({
-      impressions: acc.impressions + r.impressions,
-      clicks: acc.clicks + r.clicks,
-      conversions: acc.conversions + r.conversions,
-      spend: acc.spend + r.spend,
-      revenue: acc.revenue + r.revenue,
+      impressions: acc.impressions + (r.impressions || 0),
+      clicks: acc.clicks + (r.clicks || 0),
+      conversions: acc.conversions + (r.conversions || 0),
+      spend: acc.spend + (r.spend || 0),
+      revenue: acc.revenue + (r.revenue || 0),
     }),
     { impressions: 0, clicks: 0, conversions: 0, spend: 0, revenue: 0 }
   )
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Raporlar yukleniyor...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Hata</AlertTitle>
+        <AlertDescription>
+          Veritabanina baglanilamadi. Lutfen MySQL baglantinizi ve tablolarinizi kontrol edin. {error}
+        </AlertDescription>
+      </Alert>
+    )
+  }
 
   function SortHeader({ label, field }: { label: string; field: SortKey }) {
     return (
@@ -119,11 +167,11 @@ export default function ReportsPage() {
           { label: "Toplam Donusum", value: totals.conversions.toLocaleString() },
           {
             label: "Toplam Harcama",
-            value: `$${totals.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            value: `₺${totals.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           },
           {
             label: "Toplam Gelir",
-            value: `$${totals.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            value: `₺${totals.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
           },
         ].map((stat) => (
           <Card key={stat.label} className="border-border bg-card">
@@ -173,7 +221,7 @@ export default function ReportsPage() {
                 <SelectItem value="all">Tum Kampanyalar</SelectItem>
                 {reportsData.map((r) => (
                   <SelectItem key={r.id} value={r.id}>
-                    {r.campaign}
+                    {r.name}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -191,7 +239,7 @@ export default function ReportsPage() {
                 <TableRow className="border-border hover:bg-transparent">
                   <TableHead className="w-8" />
                   <TableHead>
-                    <SortHeader label="Kampanya" field="campaign" />
+                    <SortHeader label="Kampanya" field="name" />
                   </TableHead>
                   <TableHead className="text-xs uppercase tracking-wider text-muted-foreground">
                     Platform
@@ -221,7 +269,7 @@ export default function ReportsPage() {
               </TableHeader>
               <TableBody>
                 {filteredData.map((report) => (
-                  <>
+                  <Fragment key={report.id}>
                     <TableRow
                       key={report.id}
                       className="cursor-pointer border-border transition-colors hover:bg-accent/50"
@@ -239,7 +287,7 @@ export default function ReportsPage() {
                         )}
                       </TableCell>
                       <TableCell className="font-medium text-foreground">
-                        {report.campaign}
+                        {report.name}
                       </TableCell>
                       <TableCell>
                         <Badge
@@ -250,28 +298,28 @@ export default function ReportsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">
-                        {report.impressions.toLocaleString()}
+                        {(report.impressions || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">
-                        {report.clicks.toLocaleString()}
+                        {(report.clicks || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">
-                        %{report.ctr}
+                        %{report.ctr?.toFixed(2) || "0.00"}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">
-                        {report.conversions.toLocaleString()}
+                        {(report.conversions || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">
-                        ${report.spend.toLocaleString()}
+                        ₺{(report.spend || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">
-                        ${report.revenue.toLocaleString()}
+                        ₺{(report.revenue || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge
                           variant="outline"
                           className={
-                            report.roas >= 5
+                            (report.roas || 0) >= 5
                               ? "bg-success/15 text-success border-success/20"
                               : report.roas >= 3
                               ? "bg-chart-1/15 text-chart-1 border-chart-1/20"
@@ -294,7 +342,7 @@ export default function ReportsPage() {
                                 Tiklama Basina Maliyet
                               </p>
                               <p className="mt-1 font-mono text-lg font-semibold text-foreground">
-                                ${report.cpc}
+                                ₺{report.cpc}
                               </p>
                             </div>
                             <div>
@@ -302,7 +350,7 @@ export default function ReportsPage() {
                                 Bin Gosterim Maliyeti
                               </p>
                               <p className="mt-1 font-mono text-lg font-semibold text-foreground">
-                                ${report.cpm}
+                                ₺{report.cpm}
                               </p>
                             </div>
                             <div>
@@ -318,14 +366,14 @@ export default function ReportsPage() {
                                 Donusum Basina Gelir
                               </p>
                               <p className="mt-1 font-mono text-lg font-semibold text-foreground">
-                                ${(report.revenue / report.conversions).toFixed(2)}
+                                ₺{(report.revenue / report.conversions).toFixed(2)}
                               </p>
                             </div>
                           </div>
                         </TableCell>
                       </TableRow>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </TableBody>
             </Table>

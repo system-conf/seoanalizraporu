@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import {
   Bar,
   BarChart,
@@ -16,59 +17,113 @@ import {
 } from "recharts"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-const conversionFunnelData = [
-  { stage: "Gosterimler", value: 9690000, fill: "var(--color-chart-1)" },
-  { stage: "Tiklamalar", value: 384090, fill: "var(--color-chart-2)" },
-  { stage: "Donusumler", value: 14996, fill: "var(--color-chart-3)" },
-  { stage: "Gelir", value: 126122, fill: "var(--color-chart-4)" },
-]
-
-const hourlyData = Array.from({ length: 24 }, (_, i) => ({
-  hour: `${i}:00`,
-  clicks: Math.floor(Math.random() * 5000 + 2000),
-  conversions: Math.floor(Math.random() * 200 + 50),
-}))
-
-const deviceData = [
-  { name: "Mobil", value: 58, fill: "var(--color-chart-1)" },
-  { name: "Masaustu", value: 32, fill: "var(--color-chart-2)" },
-  { name: "Tablet", value: 10, fill: "var(--color-chart-3)" },
-]
-
-const geoData = [
-  { country: "Turkiye", spend: 24500, conversions: 8200 },
-  { country: "Almanya", spend: 8200, conversions: 2800 },
-  { country: "Ingiltere", spend: 6100, conversions: 1900 },
-  { country: "Fransa", spend: 4800, conversions: 1200 },
-  { country: "Hollanda", spend: 3100, conversions: 890 },
-]
-
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean
-  payload?: Array<{ name: string; value: number; color: string }>
-  label?: string
-}) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="rounded-lg border border-border bg-card p-3 shadow-xl">
-      <p className="mb-2 text-xs font-medium text-muted-foreground">{label}</p>
-      {payload.map((entry) => (
-        <div key={entry.name} className="flex items-center gap-2 text-sm">
-          <div className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />
-          <span className="text-muted-foreground">{entry.name}:</span>
-          <span className="font-medium text-foreground">{entry.value.toLocaleString()}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
+import { Loader2, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function AnalyticsPage() {
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const response = await fetch('/api/dashboard')
+        if (!response.ok) {
+          if (response.status === 401) {
+            window.location.href = '/';
+            return;
+          }
+          throw new Error('Veri yuklenemedi')
+        }
+        const result = await response.json()
+        setData(result)
+      } catch (err: any) {
+        setError(err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-sm text-muted-foreground">Analiz verileri yukleniyor...</span>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Hata</AlertTitle>
+        <AlertDescription>
+          Veritabanina baglanilamadi. Lutfen MySQL baglantinizi kontrol edin. {error}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  // Derived data for the conversion funnel from real stats
+  const totalSpend = data.stats.find((s: any) => s.title === "Toplam Harcama")?.rawValue || 0
+  const totalClicks = data.stats.find((s: any) => s.title === "Toplam Tiklama")?.rawValue || 0
+  const totalConversions = data.stats.find((s: any) => s.title === "Donusumler")?.rawValue || 0
+  const totalRevenue = data.stats.find((s: any) => s.title === "Gelir")?.rawValue || 0
+
+  const conversionFunnelData = [
+    { stage: "Harcama", value: totalSpend, fill: "var(--color-chart-1)" },
+    { stage: "Tiklamalar", value: totalClicks, fill: "var(--color-chart-2)" },
+    { stage: "Donusumler", value: totalConversions, fill: "var(--color-chart-3)" },
+    { stage: "Gelir", value: totalRevenue, fill: "var(--color-chart-4)" },
+  ]
+
+  const hourlyData = Array.from({ length: 24 }, (_, i) => ({
+    hour: `${i}:00`,
+    clicks: Math.floor(Math.random() * 5000 + 2000),
+    conversions: Math.floor(Math.random() * 200 + 50),
+  }))
+
+  const deviceData = [
+    { name: "Mobil", value: 58, fill: "var(--color-chart-1)" },
+    { name: "Masaustu", value: 32, fill: "var(--color-chart-2)" },
+    { name: "Tablet", value: 10, fill: "var(--color-chart-3)" },
+  ]
+
+  const geoData = [
+    { country: "Turkiye", spend: 24500, conversions: 8200 },
+    { country: "Almanya", spend: 8200, conversions: 2800 },
+    { country: "Ingiltere", spend: 6100, conversions: 1900 },
+    { country: "Fransa", spend: 4800, conversions: 1200 },
+    { country: "Hollanda", spend: 3100, conversions: 890 },
+  ]
+  function CustomTooltip({
+    active,
+    payload,
+    label,
+  }: {
+    active?: boolean
+    payload?: Array<{ name: string; value: number; color: string }>
+    label?: string
+  }) {
+    if (!active || !payload?.length) return null
+    return (
+      <div className="rounded-lg border border-border bg-card p-3 shadow-xl">
+        <p className="mb-2 text-xs font-medium text-muted-foreground">{label}</p>
+        {payload.map((entry) => (
+          <div key={entry.name} className="flex items-center gap-2 text-sm">
+            <div className="size-2 rounded-full" style={{ backgroundColor: entry.color }} />
+            <span className="text-muted-foreground">{entry.name}:</span>
+            <span className="font-medium text-foreground">{entry.value.toLocaleString()}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -317,13 +372,13 @@ export default function AnalyticsPage() {
                             {row.country}
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-sm text-foreground">
-                            ${row.spend.toLocaleString()}
+                            ₺{row.spend.toLocaleString()}
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-sm text-foreground">
                             {row.conversions.toLocaleString()}
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-sm text-foreground">
-                            ${(row.spend / row.conversions).toFixed(2)}
+                            ₺{(row.spend / row.conversions).toFixed(2)}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">

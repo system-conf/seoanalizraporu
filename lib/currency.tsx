@@ -28,7 +28,7 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | null>(null)
 
 export function CurrencyProvider({ children }: { children: ReactNode }) {
-  const [currencyCode, setCurrencyCode] = useState<CurrencyCode>("USD")
+  const [currencyCode, setCurrencyCode] = useState<CurrencyCode>("TRY")
   const currency = currencies.find((c) => c.code === currencyCode) ?? currencies[0]
 
   const convert = useCallback(

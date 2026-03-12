@@ -15,12 +15,14 @@ import {
   YAxis,
   Legend,
 } from "recharts"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  dailySpendData,
-  platformComparisonData,
-  budgetDistributionData,
-} from "@/lib/mock-data"
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 function CustomTooltip({
   active,
@@ -43,7 +45,7 @@ function CustomTooltip({
           />
           <span className="text-muted-foreground">{entry.name}:</span>
           <span className="font-medium text-foreground">
-            ${entry.value.toLocaleString()}
+            ₺{entry.value.toLocaleString()}
           </span>
         </div>
       ))}
@@ -51,7 +53,27 @@ function CustomTooltip({
   )
 }
 
-export function DashboardCharts() {
+const platformColors = [
+  { name: "Google", fill: "var(--color-chart-1)" },
+  { name: "Meta", fill: "var(--color-chart-2)" },
+  { name: "TikTok", fill: "var(--color-chart-3)" },
+]
+
+export function DashboardCharts({ 
+  trendData = [], 
+  platformData = [] 
+}: { 
+  trendData?: any[], 
+  platformData?: any[] 
+}) {
+  // Derive budget distribution from platformData
+  const totalSpend = platformData.reduce((acc, p) => acc + Number(p.value), 0)
+  const budgetDistributionData = platformData.map(p => ({
+    name: p.name,
+    value: totalSpend > 0 ? Math.round((Number(p.value) / totalSpend) * 100) : 0,
+    fill: platformColors.find(c => c.name === p.name)?.fill || "var(--color-muted)"
+  }))
+
   return (
     <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
       {/* Daily Spend Trend */}
@@ -64,7 +86,7 @@ export function DashboardCharts() {
         <CardContent>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={dailySpendData}>
+              <AreaChart data={trendData}>
                 <defs>
                   <linearGradient id="googleGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.25} />
@@ -94,7 +116,7 @@ export function DashboardCharts() {
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
-                  tickFormatter={(v) => `$${v}`}
+                  tickFormatter={(v) => `₺${v}`}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
@@ -213,14 +235,14 @@ export function DashboardCharts() {
         <CardContent>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={platformComparisonData} barGap={8}>
+              <BarChart data={platformData} barGap={8}>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   stroke="var(--color-border)"
                   vertical={false}
                 />
                 <XAxis
-                  dataKey="platform"
+                  dataKey="name"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
@@ -229,27 +251,13 @@ export function DashboardCharts() {
                   axisLine={false}
                   tickLine={false}
                   tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }}
-                  tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
+                  tickFormatter={(v) => `₺${(v / 1000).toFixed(0)}k`}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  verticalAlign="top"
-                  align="right"
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ fontSize: 12, paddingBottom: 12 }}
-                />
                 <Bar
-                  dataKey="spend"
+                  dataKey="value"
                   name="Harcama"
                   fill="var(--color-chart-1)"
-                  radius={[6, 6, 0, 0]}
-                  maxBarSize={48}
-                />
-                <Bar
-                  dataKey="conversions"
-                  name="Donusumler"
-                  fill="var(--color-chart-2)"
                   radius={[6, 6, 0, 0]}
                   maxBarSize={48}
                 />
