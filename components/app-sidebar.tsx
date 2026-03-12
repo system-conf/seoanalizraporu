@@ -45,7 +45,7 @@ export function AppSidebar() {
     { label: "Kampanya Olustur", href: "/dashboard/campaigns/create", icon: PlusCircle },
     { label: "Raporlar", href: "/dashboard/reports", icon: FileBarChart },
     { label: "Analitik", href: "/dashboard/analytics", icon: BarChart3 },
-    ...(isAdmin ? [{ label: "Musteriler", href: "/dashboard/users", icon: Users }] : []),
+    ...(isAdmin ? [{ label: "Musteri Yonetimi", href: "/dashboard/users", icon: Users }] : []),
     { label: "Ayarlar", href: "/dashboard/settings", icon: Settings },
   ]
 

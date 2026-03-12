@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       username: user.username,
       role: user.role
     }), {
-      httpOnly: true,
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       maxAge: 60 * 60 * 24 * 7, // 1 week
       path: '/'
