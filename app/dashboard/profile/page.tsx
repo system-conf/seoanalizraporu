@@ -22,6 +22,15 @@ import {
   CheckCircle2 
 } from "lucide-react"
 import { useEffect, useState } from "react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 
 export default function ProfilePage() {
   const [user, setUser] = useState({ fullName: "", username: "", role: "", email: "", phone: "", bio: "", initials: "AY" })
