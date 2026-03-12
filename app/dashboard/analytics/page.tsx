@@ -372,13 +372,13 @@ export default function AnalyticsPage() {
                             {row.country}
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-sm text-foreground">
-                            ₺{row.spend.toLocaleString()}
+                            {row.spend.toLocaleString()} ₺
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-sm text-foreground">
                             {row.conversions.toLocaleString()}
                           </td>
                           <td className="px-6 py-4 text-right font-mono text-sm text-foreground">
-                            ₺{(row.spend / row.conversions).toFixed(2)}
+                            {(row.spend / row.conversions).toFixed(2)} ₺
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex items-center gap-2">

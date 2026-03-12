@@ -132,7 +132,7 @@ export function CampaignTable({ campaigns = [] }: { campaigns?: Campaign[] }) {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-foreground">
-                    ₺{Number(campaign.budget).toLocaleString()}
+                    {Number(campaign.budget).toLocaleString()} ₺
                   </TableCell>
                   <TableCell className="text-right font-mono text-sm text-foreground">
                     {campaign.add_to_cart || 0}

@@ -16,9 +16,9 @@ import {
 } from "lucide-react"
 
 const invoices = [
-  { id: "INV-2024-001", date: "01 Mar 2024", amount: "₺4,500.00", status: "Paid", plan: "Professional Plan" },
-  { id: "INV-2024-002", date: "01 Sub 2024", amount: "₺4,500.00", status: "Paid", plan: "Professional Plan" },
-  { id: "INV-2024-003", date: "01 Oca 2024", amount: "₺2,900.00", status: "Paid", plan: "Basic Plan" },
+  { id: "INV-2024-001", date: "01 Mar 2024", amount: "4.500,00 ₺", status: "Paid", plan: "Professional Plan" },
+  { id: "INV-2024-002", date: "01 Sub 2024", amount: "4.500,00 ₺", status: "Paid", plan: "Professional Plan" },
+  { id: "INV-2024-003", date: "01 Oca 2024", amount: "2.900,00 ₺", status: "Paid", plan: "Basic Plan" },
 ]
 
 export default function BillingPage() {
@@ -42,7 +42,7 @@ export default function BillingPage() {
           <CardContent>
             <div className="flex flex-col gap-6">
               <div className="flex items-end gap-2">
-                <span className="text-4xl font-bold text-foreground">₺4.500</span>
+                <span className="text-4xl font-bold text-foreground">4.500 ₺</span>
                 <span className="text-muted-foreground pb-1">/ay</span>
               </div>
               

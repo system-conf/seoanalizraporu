@@ -39,14 +39,14 @@ export function CurrencyProvider({ children }: { children: ReactNode }) {
           notation: "compact",
           maximumFractionDigits: 1,
         }).format(amount)
-        return `${currency.symbol}${formatted}`
+        return `${formatted} ${currency.symbol}`
       }
 
       const formatted = new Intl.NumberFormat("tr-TR", {
         minimumFractionDigits: decimals,
         maximumFractionDigits: decimals,
       }).format(amount)
-      return `${currency.symbol}${formatted}`
+      return `${formatted} ${currency.symbol}`
     },
     [currency.symbol]
   )

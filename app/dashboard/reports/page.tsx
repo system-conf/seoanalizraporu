@@ -167,11 +167,11 @@ export default function ReportsPage() {
           { label: "Toplam Donusum", value: totals.conversions.toLocaleString() },
           {
             label: "Toplam Harcama",
-            value: `₺${totals.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            value: `${totals.spend.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`,
           },
           {
             label: "Toplam Gelir",
-            value: `₺${totals.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+            value: `${totals.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ₺`,
           },
         ].map((stat) => (
           <Card key={stat.label} className="border-border bg-card">
@@ -310,10 +310,10 @@ export default function ReportsPage() {
                         {(report.conversions || 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">
-                        ₺{(report.spend || 0).toLocaleString()}
+                        {(report.spend || 0).toLocaleString()} ₺
                       </TableCell>
                       <TableCell className="text-right font-mono text-sm text-foreground">
-                        ₺{(report.revenue || 0).toLocaleString()}
+                        {(report.revenue || 0).toLocaleString()} ₺
                       </TableCell>
                       <TableCell className="text-right">
                         <Badge
@@ -342,7 +342,7 @@ export default function ReportsPage() {
                                 Tiklama Basina Maliyet
                               </p>
                               <p className="mt-1 font-mono text-lg font-semibold text-foreground">
-                                ₺{report.cpc}
+                                {report.cpc} ₺
                               </p>
                             </div>
                             <div>
@@ -350,7 +350,7 @@ export default function ReportsPage() {
                                 Bin Gosterim Maliyeti
                               </p>
                               <p className="mt-1 font-mono text-lg font-semibold text-foreground">
-                                ₺{report.cpm}
+                                {report.cpm} ₺
                               </p>
                             </div>
                             <div>
@@ -366,7 +366,7 @@ export default function ReportsPage() {
                                 Donusum Basina Gelir
                               </p>
                               <p className="mt-1 font-mono text-lg font-semibold text-foreground">
-                                ₺{(report.revenue / report.conversions).toFixed(2)}
+                                {(report.revenue / report.conversions).toFixed(2)} ₺
                               </p>
                             </div>
                           </div>
