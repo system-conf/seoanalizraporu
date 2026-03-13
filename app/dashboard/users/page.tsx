@@ -12,8 +12,11 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
-  KeyRound
+  KeyRound,
+  Settings2,
+  Layout
 } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -55,7 +58,9 @@ export default function UsersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false)
   const [isAssignOpen, setIsAssignOpen] = useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
+  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
   const [selectedUser, setSelectedUser] = useState<any>(null)
+  const [userPermissions, setUserPermissions] = useState<Record<string, boolean>>({})
 
   const fetchData = async () => {
     try {
@@ -114,6 +119,42 @@ export default function UsersPage() {
       setError("Islem basarisiz")
     } finally {
       setActionLoading(false)
+    }
+  }
+
+  const fetchUserPermissions = async (userId: number) => {
+    try {
+      const res = await fetch(`/api/users/permissions?userId=${userId}`)
+      if (res.ok) {
+        const data = await res.json()
+        const perms = data.reduce((acc: any, curr: any) => {
+          acc[curr.page_key] = !!curr.is_enabled
+          return acc
+        }, {})
+        setUserPermissions(perms)
+      }
+    } catch (err) {}
+  }
+
+  const handleTogglePermission = async (pageKey: string, isEnabled: boolean) => {
+    if (!selectedUser) return
+    
+    // Optimistic update
+    setUserPermissions(prev => ({ ...prev, [pageKey]: isEnabled }))
+
+    try {
+      await fetch("/api/users/permissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          userId: selectedUser.id, 
+          permissions: { [pageKey]: isEnabled } 
+        }),
+      })
+    } catch (err) {
+      setError("Izin guncellenemedi")
+      // Revert on error
+      fetchUserPermissions(selectedUser.id)
     }
   }
 
@@ -477,6 +518,57 @@ export default function UsersPage() {
                                 </Button>
                               </DialogFooter>
                             </form>
+                          </DialogContent>
+                        </Dialog>
+
+                        <Dialog open={isPermissionsDialogOpen && selectedUser?.id === user.id} onOpenChange={(open) => {
+                          setIsPermissionsDialogOpen(open)
+                          if(open) {
+                            setSelectedUser(user)
+                            fetchUserPermissions(user.id)
+                          }
+                        }}>
+                          <DialogTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-muted-foreground hover:text-primary opacity-0 group-hover:opacity-100 transition-all"
+                              title="Sayfa İzinleri"
+                            >
+                              <Settings2 className="size-4" />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[400px]">
+                            <DialogHeader>
+                              <DialogTitle>Sayfa İzinleri: {user.full_name}</DialogTitle>
+                              <DialogDescription>Musterinin hangi sayfalara erisebilecegini secin.</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4 pt-4">
+                              {[
+                                { key: 'dashboard', label: 'Kontrol Paneli' },
+                                { key: 'accounts', label: 'Hesaplar' },
+                                { key: 'campaigns', label: 'Kampanyalar' },
+                                { key: 'reports', label: 'Raporlar' },
+                                { key: 'analytics', label: 'Analitik' },
+                                { key: 'settings', label: 'Ayarlar' },
+                              ].map((page) => (
+                                <div key={page.key} className="flex items-center justify-between rounded-lg border border-border p-3">
+                                  <div className="flex items-center gap-3">
+                                    <Layout className="size-4 text-muted-foreground" />
+                                    <span className="text-sm font-medium">{page.label}</span>
+                                  </div>
+                                  <Switch 
+                                    checked={userPermissions[page.key] !== false} 
+                                    onCheckedChange={(checked) => handleTogglePermission(page.key, checked)}
+                                  />
+                                </div>
+                              ))}
+                            </div>
+                            <DialogFooter className="pt-2">
+                              <Button onClick={() => setIsPermissionsDialogOpen(false)} className="w-full">
+                                Tamam
+                              </Button>
+                            </DialogFooter>
                           </DialogContent>
                         </Dialog>
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { MoreHorizontal, Pause, Play, Eye } from "lucide-react"
+import { MoreHorizontal, Pause, Play, Eye, Pencil, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,6 +15,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -35,6 +36,14 @@ interface Campaign {
   roas: number
 }
 
+interface CampaignTableProps {
+  campaigns?: Campaign[]
+  onView?: (campaign: Campaign) => void
+  onToggleStatus?: (campaign: Campaign) => void
+  onEdit?: (campaign: Campaign) => void
+  onDelete?: (campaign: Campaign) => void
+}
+
 const platformColors: Record<string, string> = {
   Google: "bg-chart-1/15 text-chart-1 border-chart-1/20",
   Meta: "bg-chart-2/15 text-chart-2 border-chart-2/20",
@@ -47,7 +56,7 @@ const statusColors: Record<string, string> = {
   Tamamlandi: "bg-muted text-muted-foreground border-border",
 }
 
-export function CampaignTable({ campaigns = [] }: { campaigns?: Campaign[] }) {
+export function CampaignTable({ campaigns = [], onView, onToggleStatus, onEdit, onDelete }: CampaignTableProps) {
   return (
     <Card className="border-border bg-card">
       <CardHeader className="flex-row items-center justify-between pb-4">
@@ -156,11 +165,15 @@ export function CampaignTable({ campaigns = [] }: { campaigns?: Campaign[] }) {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem className="gap-2">
+                        <DropdownMenuItem className="gap-2" onClick={() => onView?.(campaign)}>
                           <Eye className="size-4" />
                           Goruntule
                         </DropdownMenuItem>
-                        <DropdownMenuItem className="gap-2">
+                        <DropdownMenuItem className="gap-2" onClick={() => onEdit?.(campaign)}>
+                          <Pencil className="size-4" />
+                          Duzenle
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="gap-2" onClick={() => onToggleStatus?.(campaign)}>
                           {campaign.status === "Aktif" ? (
                             <>
                               <Pause className="size-4" />
@@ -172,6 +185,11 @@ export function CampaignTable({ campaigns = [] }: { campaigns?: Campaign[] }) {
                               Devam Et
                             </>
                           )}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="gap-2 text-destructive focus:bg-destructive/10 focus:text-destructive" onClick={() => onDelete?.(campaign)}>
+                          <Trash2 className="size-4" />
+                          Sil
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

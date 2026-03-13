@@ -271,7 +271,7 @@ export default function AnalyticsPage() {
                         dataKey="value"
                         strokeWidth={0}
                       >
-                        {deviceData.map((entry, index) => (
+                        {deviceData.map((entry: { fill: string }, index: number) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
@@ -294,7 +294,7 @@ export default function AnalyticsPage() {
                   </ResponsiveContainer>
                 </div>
                 <div className="flex flex-col gap-2">
-                  {deviceData.map((item) => (
+                  {deviceData.map((item: { name: string; value: number; fill: string }) => (
                     <div key={item.name} className="flex items-center justify-between text-sm">
                       <div className="flex items-center gap-2">
                         <div className="size-2.5 rounded-full" style={{ backgroundColor: item.fill }} />
@@ -375,8 +375,8 @@ export default function AnalyticsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {geoData.map((row) => {
-                      const totalSpend = geoData.reduce((a, b) => a + b.spend, 0)
+                    {geoData.map((row: { country: string; spend: number; conversions: number }) => {
+                      const totalSpend = geoData.reduce((a: number, b: { spend: number }) => a + b.spend, 0)
                       const share = ((row.spend / totalSpend) * 100).toFixed(1)
                       return (
                         <tr key={row.country} className="border-b border-border transition-colors hover:bg-accent/50">

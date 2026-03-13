@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   Check,
@@ -12,6 +12,7 @@ import {
   Users,
   Image,
   FileCheck,
+  Loader2,
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -68,8 +69,12 @@ const objectives = [
 export default function CreateCampaignPage() {
   const router = useRouter()
   const [currentStep, setCurrentStep] = useState(0)
+  const [accounts, setAccounts] = useState<any[]>([])
+  const [loadingAccounts, setLoadingAccounts] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [formData, setFormData] = useState({
     platform: "",
+    ad_account_id: "",
     objective: "",
     campaignName: "",
     budget: 5000,
@@ -85,6 +90,23 @@ export default function CreateCampaignPage() {
     description: "",
     autoOptimize: true,
   })
+
+  useEffect(() => {
+    async function fetchAccounts() {
+      try {
+        const res = await fetch('/api/accounts')
+        if (res.ok) {
+          const data = await res.json()
+          setAccounts(data)
+        }
+      } catch (err) {
+        console.error('Failed to fetch accounts', err)
+      } finally {
+        setLoadingAccounts(false)
+      }
+    }
+    fetchAccounts()
+  }, [])
 
   const updateField = (field: string, value: string | number | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -143,36 +165,72 @@ export default function CreateCampaignPage() {
       {/* Step content */}
       <Card className="border-border bg-card">
         <CardContent className="p-6">
-          {/* Step 0: Platform */}
+          {/* Step 0: Platform & Account */}
           {currentStep === 0 && (
-            <div className="flex flex-col gap-4">
-              <h2 className="text-lg font-semibold text-foreground">
-                Platform Secin
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Kampanyaniz icin reklam platformunu secin.
-              </p>
-              <div className="grid gap-3 sm:grid-cols-3">
-                {platforms.map((platform) => (
-                  <button
-                    key={platform.id}
-                    onClick={() => updateField("platform", platform.id)}
-                    className={cn(
-                      "flex flex-col gap-2 rounded-xl border p-5 text-left transition-all",
-                      formData.platform === platform.id
-                        ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                        : "border-border bg-secondary hover:border-primary/40"
-                    )}
-                  >
-                    <span className="font-medium text-foreground">
-                      {platform.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {platform.description}
-                    </span>
-                  </button>
-                ))}
+            <div className="flex flex-col gap-6">
+              <div className="flex flex-col gap-2">
+                <h2 className="text-lg font-semibold text-foreground">
+                  Platform Secin
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {platforms.map((platform) => (
+                    <button
+                      key={platform.id}
+                      onClick={() => {
+                        updateField("platform", platform.id)
+                        updateField("ad_account_id", "") // Reset account on platform change
+                      }}
+                      className={cn(
+                        "flex flex-col gap-2 rounded-xl border p-5 text-left transition-all",
+                        formData.platform.toLowerCase() === platform.id
+                          ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                          : "border-border bg-secondary hover:border-primary/40"
+                      )}
+                    >
+                      <span className="font-medium text-foreground">
+                        {platform.name}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {platform.description}
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {formData.platform && (
+                <div className="flex flex-col gap-3 animate-in fade-in slide-in-from-top-2">
+                  <Label className="text-foreground">Reklam Hesabi Secin</Label>
+                  {loadingAccounts ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="size-4 animate-spin" />
+                      Hesaplar yukleniyor...
+                    </div>
+                  ) : (
+                    <Select
+                      value={formData.ad_account_id}
+                      onValueChange={(v) => updateField("ad_account_id", v)}
+                    >
+                      <SelectTrigger className="border-border bg-secondary text-foreground">
+                        <SelectValue placeholder="Hesap secin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accounts
+                          .filter(a => a.platform.toLowerCase() === formData.platform.toLowerCase())
+                          .map(a => (
+                            <SelectItem key={a.id} value={String(a.id)}>
+                              {a.account_name} ({a.external_account_id})
+                            </SelectItem>
+                          ))
+                        }
+                        {accounts.filter(a => a.platform.toLowerCase() === formData.platform.toLowerCase()).length === 0 && (
+                          <SelectItem value="none" disabled>Bu platformda bagli hesap bulunamadi</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -504,10 +562,35 @@ export default function CreateCampaignPage() {
         </Button>
         {currentStep === steps.length - 1 ? (
           <Button
-            onClick={() => router.push("/dashboard")}
+            disabled={isSubmitting || !formData.ad_account_id}
+            onClick={async () => {
+              setIsSubmitting(true)
+              try {
+                const res = await fetch('/api/campaigns', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    ad_account_id: formData.ad_account_id,
+                    name: formData.campaignName,
+                    budget: formData.budget,
+                    budget_type: formData.budgetType,
+                    image_url: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop" // Placeholder for now
+                  })
+                })
+                if (res.ok) {
+                  router.push("/dashboard/campaigns")
+                } else {
+                  alert('Kampanya olusturulurken bir hata olustu')
+                }
+              } catch (err) {
+                console.error(err)
+              } finally {
+                setIsSubmitting(false)
+              }
+            }}
             className="gap-2 bg-primary text-primary-foreground shadow-lg shadow-primary/25 hover:bg-primary/90"
           >
-            <Check className="size-4" />
+            {isSubmitting ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
             Kampanyayi Yayinla
           </Button>
         ) : (

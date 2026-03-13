@@ -15,27 +15,84 @@ import {
 } from "@/components/ui/select"
 
 import { useEffect, useState } from "react"
+import { toast } from "sonner"
+import { Loader2 } from "lucide-react"
+
+interface NotificationSettings {
+  emailNotifications: boolean
+  weeklyReports: boolean
+  budgetAlerts: boolean
+  autoPauseCampaigns: boolean
+}
 
 export default function SettingsPage() {
   const [user, setUser] = useState({ fullName: "", username: "", role: "" })
+  const [saving, setSaving] = useState(false)
+  const [notifications, setNotifications] = useState<NotificationSettings>({
+    emailNotifications: true,
+    weeklyReports: true,
+    budgetAlerts: false,
+    autoPauseCampaigns: true,
+  })
+  const [timezone, setTimezone] = useState("utc+3")
+  const [currency, setCurrency] = useState("try")
 
   useEffect(() => {
     const cookieValue = document.cookie
       .split('; ')
       .find(row => row.startsWith('user_session='))
       ?.split('=')[1];
-    
+
     if (cookieValue) {
       try {
         const session = JSON.parse(decodeURIComponent(cookieValue));
-        setUser({ 
-          fullName: session.full_name || "", 
+        setUser({
+          fullName: session.full_name || "",
           username: session.username || "",
-          role: session.role || "" 
+          role: session.role || ""
         });
       } catch (e) {}
     }
-  }, []);
+
+    // Fetch user preferences
+    fetchPreferences()
+  }, [])
+
+  const fetchPreferences = async () => {
+    try {
+      const response = await fetch('/api/profile')
+      if (response.ok) {
+        const data = await response.json()
+        if (data.notifications) {
+          setNotifications(data.notifications)
+        }
+      }
+    } catch (err) {
+      // Use defaults
+    }
+  }
+
+  const handleSavePreferences = async () => {
+    setSaving(true)
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notifications })
+      })
+
+      if (!response.ok) throw new Error('Tercihler kaydedilemedi')
+      toast.success('Tercihler kaydedildi')
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const updateNotification = (key: keyof NotificationSettings, value: boolean) => {
+    setNotifications(prev => ({ ...prev, [key]: value }))
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -94,7 +151,7 @@ export default function SettingsPage() {
           <CardContent className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
               <Label className="text-foreground">Saat Dilimi</Label>
-              <Select defaultValue="utc+3">
+              <Select value={timezone} onValueChange={setTimezone}>
                 <SelectTrigger className="border-border bg-secondary text-foreground">
                   <SelectValue />
                 </SelectTrigger>
@@ -108,7 +165,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Label className="text-foreground">Para Birimi</Label>
-              <Select defaultValue="try">
+              <Select value={currency} onValueChange={setCurrency}>
                 <SelectTrigger className="border-border bg-secondary text-foreground">
                   <SelectValue />
                 </SelectTrigger>
@@ -124,21 +181,54 @@ export default function SettingsPage() {
             <Separator className="bg-border" />
 
             <div className="flex flex-col gap-4">
-              {[
-                { label: "E-posta Bildirimleri", description: "Kampanya uyarilarini e-posta ile alin", defaultChecked: true },
-                { label: "Haftalik Raporlar", description: "Her Pazartesi ozet rapor alin", defaultChecked: true },
-                { label: "Butce Uyarilari", description: "Butce %80'i astiginda uyari", defaultChecked: false },
-                { label: "Kampanyalari Otomatik Duraklat", description: "Butce tukendiginde kampanyalari duraklat", defaultChecked: true },
-              ].map((pref) => (
-                <div key={pref.label} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{pref.label}</p>
-                    <p className="text-xs text-muted-foreground">{pref.description}</p>
-                  </div>
-                  <Switch defaultChecked={pref.defaultChecked} />
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">E-posta Bildirimleri</p>
+                  <p className="text-xs text-muted-foreground">Kampanya uyarilarini e-posta ile alin</p>
                 </div>
-              ))}
+                <Switch
+                  checked={notifications.emailNotifications}
+                  onCheckedChange={(v) => updateNotification('emailNotifications', v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Haftalik Raporlar</p>
+                  <p className="text-xs text-muted-foreground">Her Pazartesi ozet rapor alin</p>
+                </div>
+                <Switch
+                  checked={notifications.weeklyReports}
+                  onCheckedChange={(v) => updateNotification('weeklyReports', v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Butce Uyarilari</p>
+                  <p className="text-xs text-muted-foreground">Butce %80'i astiginda uyari</p>
+                </div>
+                <Switch
+                  checked={notifications.budgetAlerts}
+                  onCheckedChange={(v) => updateNotification('budgetAlerts', v)}
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Kampanyalari Otomatik Duraklat</p>
+                  <p className="text-xs text-muted-foreground">Butce tukendiginde kampanyalari duraklat</p>
+                </div>
+                <Switch
+                  checked={notifications.autoPauseCampaigns}
+                  onCheckedChange={(v) => updateNotification('autoPauseCampaigns', v)}
+                />
+              </div>
             </div>
+
+            <Separator className="bg-border" />
+
+            <Button onClick={handleSavePreferences} disabled={saving} className="w-full">
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Tercihleri Kaydet
+            </Button>
           </CardContent>
         </Card>
       </div>

@@ -30,6 +30,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useFilter } from "@/lib/filters"
+import { toast } from "sonner"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+import * as XLSX from "xlsx"
 
 const platformColors: Record<string, string> = {
   Google: "bg-chart-1/15 text-chart-1 border-chart-1/20",
@@ -40,6 +45,7 @@ const platformColors: Record<string, string> = {
 type SortKey = "name" | "impressions" | "clicks" | "ctr" | "conversions" | "spend" | "revenue" | "roas"
 
 export default function ReportsPage() {
+  const { selectedAccount, selectedPlatform, dateRange } = useFilter()
   const [reportsData, setReportsData] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -50,8 +56,14 @@ export default function ReportsPage() {
 
   useEffect(() => {
     async function fetchData() {
+      setLoading(true)
       try {
-        const response = await fetch('/api/dashboard')
+        const query = new URLSearchParams()
+        if (selectedAccount) query.set('accountId', selectedAccount)
+        if (selectedPlatform) query.set('platform', selectedPlatform)
+        if (dateRange) query.set('dateRange', dateRange)
+
+        const response = await fetch(`/api/dashboard?${query.toString()}`)
         if (!response.ok) {
           if (response.status === 401) {
              window.location.href = '/';
@@ -61,6 +73,12 @@ export default function ReportsPage() {
         }
         const result = await response.json()
         setReportsData(result.campaigns)
+        
+        if (selectedPlatform && selectedPlatform !== 'Tumu') {
+           setPlatformFilter(selectedPlatform.toLowerCase())
+        } else if (selectedPlatform === 'Tumu') {
+           setPlatformFilter('all')
+        }
       } catch (err: any) {
         setError(err.message)
       } finally {
@@ -68,7 +86,7 @@ export default function ReportsPage() {
       }
     }
     fetchData()
-  }, [])
+  }, [selectedAccount, selectedPlatform, dateRange])
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -136,6 +154,106 @@ export default function ReportsPage() {
     )
   }
 
+  const exportToPDF = () => {
+    try {
+      const doc = new jsPDF('landscape')
+
+      // Title
+      doc.setFontSize(18)
+      doc.text('Kampanya Performans Raporu', 14, 22)
+
+      // Date
+      doc.setFontSize(10)
+      doc.setTextColor(128)
+      doc.text(`Olusturulma Tarihi: ${new Date().toLocaleDateString('tr-TR')}`, 14, 30)
+
+      // Table data
+      const tableData = filteredData.map((r) => [
+        r.name,
+        r.platform,
+        (r.impressions || 0).toLocaleString(),
+        (r.clicks || 0).toLocaleString(),
+        `%${r.ctr?.toFixed(2) || '0.00'}`,
+        (r.conversions || 0).toLocaleString(),
+        `${(r.spend || 0).toLocaleString()} TL`,
+        `${(r.revenue || 0).toLocaleString()} TL`,
+        `${r.roas}x`,
+      ])
+
+      autoTable(doc, {
+        head: [['Kampanya', 'Platform', 'Gosterim', 'Tiklama', 'TO', 'Donusum', 'Harcama', 'Gelir', 'ROAS']],
+        body: tableData,
+        startY: 35,
+        styles: { fontSize: 8 },
+        headStyles: { fillColor: [66, 66, 66] },
+      })
+
+      // Totals
+      const finalY = (doc as any).lastAutoTable.finalY + 10
+      doc.setFontSize(10)
+      doc.setTextColor(0)
+      doc.text(`Toplam Gosterim: ${totals.impressions.toLocaleString()}`, 14, finalY)
+      doc.text(`Toplam Tiklama: ${totals.clicks.toLocaleString()}`, 14, finalY + 6)
+      doc.text(`Toplam Donusum: ${totals.conversions.toLocaleString()}`, 14, finalY + 12)
+      doc.text(`Toplam Harcama: ${totals.spend.toLocaleString()} TL`, 120, finalY)
+      doc.text(`Toplam Gelir: ${totals.revenue.toLocaleString()} TL`, 120, finalY + 6)
+
+      doc.save(`kampanya-raporu-${new Date().toISOString().split('T')[0]}.pdf`)
+      toast.success('PDF basariyla indirildi')
+    } catch (err) {
+      toast.error('PDF olusturulamadi')
+    }
+  }
+
+  const exportToExcel = () => {
+    try {
+      const worksheetData = filteredData.map((r) => ({
+        'Kampanya': r.name,
+        'Platform': r.platform,
+        'Gosterim': r.impressions || 0,
+        'Tiklama': r.clicks || 0,
+        'TO (%)': r.ctr?.toFixed(2) || 0,
+        'Donusum': r.conversions || 0,
+        'Harcama (TL)': r.spend || 0,
+        'Gelir (TL)': r.revenue || 0,
+        'ROAS': r.roas || 0,
+        'CPC (TL)': r.cpc || 0,
+        'CPM (TL)': r.cpm || 0,
+      }))
+
+      // Add totals row
+      worksheetData.push({
+        'Kampanya': 'TOPLAM',
+        'Platform': '',
+        'Gosterim': totals.impressions,
+        'Tiklama': totals.clicks,
+        'TO (%)': '',
+        'Donusum': totals.conversions,
+        'Harcama (TL)': totals.spend,
+        'Gelir (TL)': totals.revenue,
+        'ROAS': '',
+        'CPC (TL)': '',
+        'CPM (TL)': '',
+      })
+
+      const worksheet = XLSX.utils.json_to_sheet(worksheetData)
+      const workbook = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Kampanya Raporu')
+
+      // Auto-size columns
+      const maxWidth = 50
+      const colWidths = Object.keys(worksheetData[0] || {}).map(key => ({
+        wch: Math.min(maxWidth, Math.max(key.length, ...worksheetData.map(row => String(row[key as keyof typeof row] || '').length)))
+      }))
+      worksheet['!cols'] = colWidths
+
+      XLSX.writeFile(workbook, `kampanya-raporu-${new Date().toISOString().split('T')[0]}.xlsx`)
+      toast.success('Excel basariyla indirildi')
+    } catch (err) {
+      toast.error('Excel olusturulamadi')
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -148,11 +266,11 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2 border-border text-muted-foreground hover:text-foreground">
+          <Button variant="outline" onClick={exportToPDF} className="gap-2 border-border text-muted-foreground hover:text-foreground">
             <FileText className="size-4" />
             {"PDF'e Aktar"}
           </Button>
-          <Button variant="outline" className="gap-2 border-border text-muted-foreground hover:text-foreground">
+          <Button variant="outline" onClick={exportToExcel} className="gap-2 border-border text-muted-foreground hover:text-foreground">
             <FileSpreadsheet className="size-4" />
             {"Excel'e Aktar"}
           </Button>

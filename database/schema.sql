@@ -15,6 +15,16 @@ CREATE TABLE IF NOT EXISTS users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
+-- 0.1 User Permissions Table
+CREATE TABLE IF NOT EXISTS user_permissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    page_key VARCHAR(50) NOT NULL,
+    is_enabled BOOLEAN DEFAULT TRUE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE KEY (user_id, page_key)
+) ENGINE=InnoDB;
+
 -- 1. Ad Accounts Table
 CREATE TABLE IF NOT EXISTS ad_accounts (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -104,32 +114,3 @@ CREATE TABLE IF NOT EXISTS demographic_stats (
     FOREIGN KEY (ad_account_id) REFERENCES ad_accounts(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
--- Sample Data for Testing
-INSERT INTO users (username, password, full_name, role)
-VALUES 
-('admin', 'admin123', 'Sistem Yoneticisi', 'admin'),
-('musteri1', 'sifre123', 'Ornek Musteri', 'customer')
-ON DUPLICATE KEY UPDATE full_name = VALUES(full_name);
-
-INSERT INTO ad_accounts (user_id, platform, account_name, external_account_id, status, last_sync)
-VALUES 
-(2, 'Google', 'Musteri 1 Google Ads', '123-456-7890', 'Bagli', NOW()),
-(2, 'Meta', 'Musteri 1 Meta Ads', 'act_987654321', 'Bagli', NOW())
-ON DUPLICATE KEY UPDATE account_name = VALUES(account_name);
-
-INSERT INTO campaigns (ad_account_id, name, status, budget, image_url)
-VALUES 
-(1, 'Google Ads Bilinirlik Reklami', 'Aktif', 5000.00, 'https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=400&h=300&fit=crop'),
-(2, 'Meta Marka Bilinirlik Q1', 'Aktif', 8000.00, 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=400&h=300&fit=crop')
-ON DUPLICATE KEY UPDATE name = VALUES(name);
-
--- Insert Sample Daily Stats
-INSERT INTO daily_stats (ad_account_id, campaign_id, stat_date, spend, impressions, clicks, add_to_cart, conversions, revenue)
-VALUES 
-(1, 1, '2026-03-01', 120.50, 4500, 180, 25, 5, 450.00),
-(1, 1, '2026-03-02', 145.20, 5200, 210, 32, 8, 620.00),
-(1, 1, '2026-03-03', 130.80, 4800, 195, 28, 6, 510.00),
-(2, 2, '2026-03-01', 200.00, 8000, 150, 15, 2, 0.00),
-(2, 2, '2026-03-02', 210.00, 8500, 165, 22, 3, 150.00),
-(2, 2, '2026-03-03', 195.00, 7800, 140, 18, 2, 80.00)
-ON DUPLICATE KEY UPDATE spend = VALUES(spend);

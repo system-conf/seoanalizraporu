@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { cookies } from 'next/headers';
+import { hashPassword } from '@/lib/auth';
 
-// Get all users (Admin only)
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -24,7 +24,6 @@ export async function GET() {
   }
 }
 
-// Create user (Admin only)
 export async function POST(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -40,10 +39,11 @@ export async function POST(request: Request) {
     }
 
     const { username, password, full_name, role = 'customer' } = await request.json();
+    const hashedPassword = await hashPassword(password);
 
     const [result]: any = await pool.execute(
       'INSERT INTO users (username, password, full_name, role) VALUES (?, ?, ?, ?)',
-      [username, password, full_name, role]
+      [username, hashedPassword, full_name, role]
     );
 
     return NextResponse.json({ success: true, id: result.insertId });
@@ -52,7 +52,6 @@ export async function POST(request: Request) {
   }
 }
 
-// Delete user (Admin only)
 export async function DELETE(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -80,7 +79,7 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-// Update user password (Admin only)
+
 export async function PATCH(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -101,9 +100,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ error: 'Eksik bilgiler' }, { status: 400 });
     }
 
+    const hashedPassword = await hashPassword(password);
     await pool.execute(
       'UPDATE users SET password = ? WHERE id = ?',
-      [password, id]
+      [hashedPassword, id]
     );
 
     return NextResponse.json({ success: true });

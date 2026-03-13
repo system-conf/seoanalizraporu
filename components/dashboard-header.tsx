@@ -24,8 +24,13 @@ import { useFilter } from "@/lib/filters"
 
 export function DashboardHeader() {
   const router = useRouter()
-  const [user, setUser] = useState({ fullName: "", initials: "AY" })
+  const [mounted, setMounted] = useState(false)
+  const [user, setUser] = useState({ fullName: "", role: "customer", initials: "AY" })
   const [accounts, setAccounts] = useState<any[]>([])
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   const { 
     selectedAccount, setSelectedAccount, 
     selectedPlatform, setSelectedPlatform,
@@ -40,13 +45,14 @@ export function DashboardHeader() {
           const data = await response.json()
           if (data.authenticated && data.user) {
             const fullName = data.user.full_name || "Kullanici";
+            const role = data.user.role || "customer";
             const initials = fullName
               .split(' ')
               .map((n: string) => n[0])
               .join('')
               .toUpperCase()
               .substring(0, 2);
-            setUser({ fullName, initials });
+            setUser({ fullName, role, initials });
           }
         }
       } catch (e) {
@@ -80,6 +86,18 @@ export function DashboardHeader() {
     } catch (e) {
       console.error('Logout failed');
     }
+  }
+
+  if (!mounted) {
+    return (
+      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-6 backdrop-blur-md">
+        <div className="flex items-center gap-3">
+          <div className="h-9 w-48 rounded-md bg-secondary animate-pulse" />
+          <div className="h-9 w-36 rounded-md bg-secondary animate-pulse" />
+        </div>
+        <div className="h-8 w-8 rounded-full bg-secondary animate-pulse" />
+      </header>
+    )
   }
 
   return (
@@ -145,7 +163,9 @@ export function DashboardHeader() {
               </Avatar>
               <div className="hidden flex-col items-start md:flex">
                 <span className="text-sm font-semibold text-foreground">{user.fullName}</span>
-                <span className="text-[10px] text-muted-foreground">AdControl Pro</span>
+                <span className="text-[10px] text-muted-foreground">
+                  {user.role === 'admin' ? 'Yönetici' : 'Müşteri'}
+                </span>
               </div>
               <ChevronDown className="size-3 text-muted-foreground" />
             </button>

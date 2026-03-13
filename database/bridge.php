@@ -1,5 +1,5 @@
 <?php
-// AdControl Pro - Database Bridge
+// En İyi SEO Hizmeti - Database Bridge
 // Bu dosya, denerken 3306 portu kapalı olduğunda veritabanı işlemlerini yapmak için kullanılır.
 
 header('Content-Type: application/json');

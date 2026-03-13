@@ -7,7 +7,7 @@ export interface Filters {
   dateRange?: string;
 }
 
-function applyFilters(query: string, params: any[], filters: Filters, tableAlias: string = 'a') {
+function applyFilters(query: string, params: any[], filters: Filters, tableAlias: string = 'a', includeDate: boolean = true) {
   let modifiedQuery = query;
   
   if (filters.userId) {
@@ -29,7 +29,7 @@ function applyFilters(query: string, params: any[], filters: Filters, tableAlias
     params.push(filters.platform);
   }
 
-  if (filters.dateRange) {
+  if (filters.dateRange && includeDate) {
     let days = 30;
     if (filters.dateRange === '7d') days = 7;
     if (filters.dateRange === '90d') days = 90;
@@ -124,12 +124,12 @@ export async function getDashboardStats(filters: Filters) {
   const addToCart = Number(stats.totalAddToCart || 0);
 
   return [
-    { title: "Toplam Harcama", rawValue: spend, isCurrency: true, trend: "up", percentage: "+0%", chartData: [] },
-    { title: "Toplam Tiklama", rawValue: clicks, isCurrency: false, trend: "up", percentage: "+0%", chartData: [] },
-    { title: "Sepete Ekleme", rawValue: addToCart, isCurrency: false, trend: "up", percentage: "+0%", chartData: [] },
-    { title: "Donusumler", rawValue: conversions, isCurrency: false, trend: "up", percentage: "+0%", chartData: [] },
-    { title: "Gelir", rawValue: revenue, isCurrency: true, trend: "up", percentage: "+0%", chartData: [] },
-    { title: "ROAS", rawValue: spend > 0 ? revenue / spend : 0, isCurrency: false, trend: "up", percentage: "+0%", chartData: [] },
+    { title: "Toplam Harcama", rawValue: spend, isCurrency: true, trend: "up", percentage: "", chartData: [] },
+    { title: "Toplam Tiklama", rawValue: clicks, isCurrency: false, trend: "up", percentage: "", chartData: [] },
+    { title: "Sepete Ekleme", rawValue: addToCart, isCurrency: false, trend: "up", percentage: "", chartData: [] },
+    { title: "Donusumler", rawValue: conversions, isCurrency: false, trend: "up", percentage: "", chartData: [] },
+    { title: "Gelir", rawValue: revenue, isCurrency: true, trend: "up", percentage: "", chartData: [] },
+    { title: "ROAS", rawValue: spend > 0 ? revenue / spend : 0, isCurrency: false, trend: "up", percentage: "", chartData: [] },
   ];
 }
 
@@ -196,8 +196,7 @@ export async function getDeviceStats(filters: Filters) {
     JOIN ad_accounts a ON d.ad_account_id = a.id
     WHERE 1=1
   `;
-  
-  query = applyFilters(query, params, filters, 'a');
+  query = applyFilters(query, params, filters, 'a', false);
   
   query += ' GROUP BY device_type';
   const [rows] = await pool.execute(query, params);
@@ -212,8 +211,7 @@ export async function getGeoStats(filters: Filters) {
     JOIN ad_accounts a ON g.ad_account_id = a.id
     WHERE 1=1
   `;
-  
-  query = applyFilters(query, params, filters, 'a');
+  query = applyFilters(query, params, filters, 'a', false);
   
   query += ' GROUP BY country ORDER BY spend DESC';
   const [rows] = await pool.execute(query, params);
@@ -228,10 +226,35 @@ export async function getDemographicStats(filters: Filters) {
     JOIN ad_accounts a ON d.ad_account_id = a.id
     WHERE 1=1
   `;
-  
-  query = applyFilters(query, params, filters, 'a');
+  query = applyFilters(query, params, filters, 'a', false);
   
   query += ' GROUP BY age_range, gender ORDER BY age_range ASC';
   const [rows] = await pool.execute(query, params);
   return rows;
+}
+
+export async function getTeamMembers() {
+  const [rows]: any = await pool.execute(`
+    SELECT id, full_name as name, role, email, username, created_at as lastActive 
+    FROM users 
+    WHERE role = 'admin'
+    ORDER BY created_at DESC
+  `);
+  return rows.map((row: any) => ({
+    ...row,
+    status: 'Online', 
+    initials: row.name ? row.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().substring(0, 2) : '??',
+    lastActive: row.lastActive ? new Date(row.lastActive).toLocaleDateString() : 'N/A'
+  }));
+}
+
+export async function getTeamStats() {
+  const [totalMembers]: any = await pool.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+  const [admins]: any = await pool.execute("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+  
+  return [
+    { label: "Toplam Uye", value: totalMembers[0].count.toString(), icon: 'Users', color: "text-primary" },
+    { label: "Yoneticiler", value: admins[0].count.toString(), icon: 'Shield', color: "text-chart-4" },
+    { label: "Aktif Uyeler", value: totalMembers[0].count.toString(), icon: 'Clock', color: "text-chart-2" },
+  ];
 }

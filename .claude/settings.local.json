@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(cd E:/lilidea/seoanalizraporu && npx tsc --noEmit 2>&1 | head -50)",
+      "Bash(cd E:/lilidea/seoanalizraporu && npx tsc --noEmit 2>&1)",
+      "Bash(cd \"E:\\\\lilidea\\\\seoanalizraporu\" && node update-password.js)",
+      "Bash(php -v 2>&1 || echo \"PHP not available in CLI\")",
+      "Bash(mysql --version 2>&1 || echo \"MySQL client not available\"anil1bodur@gmail.com)",
+      "Bash(cd E:/lilidea/seoanalizraporu && npm install jspdf jspdf-autotable xlsx --save)",
+      "Bash(node update-admin-email.js)"
+    ]
+  }
+}

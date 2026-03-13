@@ -6,7 +6,7 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" })
 const jetbrainsMono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains" })
 
 export const metadata: Metadata = {
-  title: 'AdControl Pro - Coklu Platform Reklam Yonetimi',
+  title: 'En İyi SEO Hizmeti - Coklu Platform Reklam Yonetimi',
   description: 'Google Ads, Meta Ads ve TikTok Ads icin merkezi reklam yonetim platformu',
   icons: {
     icon: [

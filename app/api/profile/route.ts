@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { cookies } from 'next/headers';
+import { hashPassword } from '@/lib/auth';
 
-// Get current user profile
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -28,7 +28,6 @@ export async function GET() {
   }
 }
 
-// Update current user profile
 export async function PATCH(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -40,24 +39,23 @@ export async function PATCH(request: Request) {
 
     const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const body = await request.json();
-    console.log('Profile Update Body:', body);
-    const { full_name, email, phone, bio, notifications } = body;
+    const { full_name, email, phone, bio, notifications, password } = body;
 
-    await pool.execute(
-      'UPDATE users SET full_name = ?, email = ?, phone = ?, bio = ?, notifications = ? WHERE id = ?',
-      [
-        full_name || null, 
-        email || null, 
-        phone || null, 
-        bio || null, 
-        notifications ? JSON.stringify(notifications) : null, 
-        session.id
-      ]
-    );
+    if (password) {
+      const hashedPassword = await hashPassword(password);
+      await pool.execute(
+        'UPDATE users SET full_name = ?, email = ?, phone = ?, bio = ?, notifications = ?, password = ? WHERE id = ?',
+        [full_name || null, email || null, phone || null, bio || null, notifications ? JSON.stringify(notifications) : null, hashedPassword, session.id]
+      );
+    } else {
+      await pool.execute(
+        'UPDATE users SET full_name = ?, email = ?, phone = ?, bio = ?, notifications = ? WHERE id = ?',
+        [full_name || null, email || null, phone || null, bio || null, notifications ? JSON.stringify(notifications) : null, session.id]
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Profile Update Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

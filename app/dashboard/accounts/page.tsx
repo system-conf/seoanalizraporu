@@ -11,12 +11,32 @@ import {
   Clock,
   Loader2,
   AlertCircle,
+  Plus,
+  Trash2,
 } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useEffect, useState } from "react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { toast } from "sonner"
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -65,21 +85,99 @@ export default function AccountsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await fetch('/api/accounts')
-        if (!response.ok) throw new Error('Hesaplar yuklenemedi')
-        const data = await response.json()
-        setAccounts(data)
-      } catch (err: any) {
-        setError(err.message)
-      } finally {
-        setLoading(false)
-      }
+  // Dialog states
+  const [addAccountDialog, setAddAccountDialog] = useState<string | null>(null) // platform name
+  const [deleteAccount, setDeleteAccount] = useState<any>(null)
+  const [saving, setSaving] = useState(false)
+
+  // Form states
+  const [accountName, setAccountName] = useState("")
+  const [externalAccountId, setExternalAccountId] = useState("")
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await fetch('/api/accounts')
+      if (!response.ok) throw new Error('Hesaplar yuklenemedi')
+      const data = await response.json()
+      setAccounts(data)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
     }
-    fetchData()
+  }
+
+  useEffect(() => {
+    fetchAccounts()
   }, [])
+
+  const handleAddAccount = async () => {
+    if (!addAccountDialog || !accountName || !externalAccountId) {
+      toast.error('Lutfen tum alanlari doldurun')
+      return
+    }
+
+    setSaving(true)
+    try {
+      const response = await fetch('/api/accounts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          platform: addAccountDialog,
+          account_name: accountName,
+          external_account_id: externalAccountId
+        })
+      })
+      if (!response.ok) throw new Error('Hesap eklenemedi')
+      toast.success('Hesap basariyla eklendi')
+      setAddAccountDialog(null)
+      setAccountName("")
+      setExternalAccountId("")
+      fetchAccounts()
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!deleteAccount) return
+
+    setSaving(true)
+    try {
+      const response = await fetch('/api/accounts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: deleteAccount.id })
+      })
+      if (!response.ok) throw new Error('Hesap silinemedi')
+      toast.success('Hesap basariyla silindi')
+      setDeleteAccount(null)
+      fetchAccounts()
+    } catch (err: any) {
+      toast.error(err.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSync = (account: any) => {
+    toast.info(`${account.account_name} senkronize ediliyor...`)
+  }
+
+  const handleOpen = (account: any) => {
+    if (account.external_account_id) {
+      const url = account.platform === 'Google'
+        ? `https://ads.google.com/aw/accounts?__c=${account.external_account_id}`
+        : account.platform === 'Meta'
+        ? `https://business.facebook.com/adsmanager/manage/accounts?act=${account.external_account_id}`
+        : `https://ads.tiktok.com/i18n/dashboard?aadvid=${account.external_account_id}`
+      window.open(url, '_blank')
+    } else {
+      toast.info('Hesap ID bulunamadi')
+    }
+  }
 
   if (loading) {
     return (
@@ -96,9 +194,9 @@ export default function AccountsPage() {
   const tiktokCount = accounts.filter(a => a.platform === 'TikTok').length
 
   const platforms = [
-    { name: "Google Ads", icon: GoogleIcon, connected: googleCount > 0, count: googleCount },
-    { name: "Meta Ads", icon: MetaIcon, connected: metaCount > 0, count: metaCount },
-    { name: "TikTok Ads", icon: TikTokIcon, connected: tiktokCount > 0, count: tiktokCount },
+    { name: "Google", displayName: "Google Ads", icon: GoogleIcon, connected: googleCount > 0, count: googleCount },
+    { name: "Meta", displayName: "Meta Ads", icon: MetaIcon, connected: metaCount > 0, count: metaCount },
+    { name: "TikTok", displayName: "TikTok Ads", icon: TikTokIcon, connected: tiktokCount > 0, count: tiktokCount },
   ]
 
   return (
@@ -132,7 +230,7 @@ export default function AccountsPage() {
                 <platform.icon className="size-6" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-foreground">{platform.name}</p>
+                <p className="font-medium text-foreground">{platform.displayName}</p>
                 <p className="text-xs text-muted-foreground">
                   {platform.connected ? `${platform.count} Hesap bagli` : "Bagli degil"}
                 </p>
@@ -140,6 +238,7 @@ export default function AccountsPage() {
               <Button
                 variant={platform.connected ? "outline" : "default"}
                 size="sm"
+                onClick={() => setAddAccountDialog(platform.name)}
                 className={
                   platform.connected
                     ? "border-border text-muted-foreground hover:text-foreground"
@@ -158,7 +257,7 @@ export default function AccountsPage() {
         <h2 className="text-lg font-semibold text-foreground">Hesap Detaylari</h2>
         {accounts.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border p-8 text-center">
-            <p className="text-muted-foreground text-sm">Henüz hesap bağlamadınız.</p>
+            <p className="text-muted-foreground text-sm">Henüz hesap baglamadiniz.</p>
           </div>
         ) : (
           <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -180,7 +279,7 @@ export default function AccountsPage() {
                             {account.account_name}
                           </p>
                           <p className="font-mono text-xs text-muted-foreground">
-                            {account.platform_id}
+                            {account.external_account_id}
                           </p>
                         </div>
                       </div>
@@ -194,6 +293,7 @@ export default function AccountsPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => handleSync(account)}
                         className="flex-1 gap-2 border-border text-muted-foreground hover:text-foreground"
                       >
                         <RefreshCw className="size-3" />
@@ -202,10 +302,19 @@ export default function AccountsPage() {
                       <Button
                         variant="outline"
                         size="sm"
+                        onClick={() => handleOpen(account)}
                         className="flex-1 gap-2 border-border text-muted-foreground hover:text-foreground"
                       >
                         <ExternalLink className="size-3" />
                         Ac
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setDeleteAccount(account)}
+                        className="gap-2 border-border text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="size-3" />
                       </Button>
                     </div>
                   </CardContent>
@@ -215,6 +324,64 @@ export default function AccountsPage() {
           </div>
         )}
       </div>
+
+      {/* Add Account Dialog */}
+      <Dialog open={!!addAccountDialog} onOpenChange={() => setAddAccountDialog(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Hesap Ekle</DialogTitle>
+            <DialogDescription>
+              {addAccountDialog && platforms.find(p => p.name === addAccountDialog)?.displayName} hesabi ekleyin
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="accountName">Hesap Adi</Label>
+              <Input
+                id="accountName"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+                placeholder="Ornek: Ana Hesap"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="externalId">Hesap ID</Label>
+              <Input
+                id="externalId"
+                value={externalAccountId}
+                onChange={(e) => setExternalAccountId(e.target.value)}
+                placeholder="Ornek: 1234567890"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddAccountDialog(null)}>Iptal</Button>
+            <Button onClick={handleAddAccount} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Ekle
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteAccount} onOpenChange={() => setDeleteAccount(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Hesabi Sil</DialogTitle>
+            <DialogDescription>
+              Bu islem geri alinamaz. "{deleteAccount?.account_name}" hesabini silmek istediginizden emin misiniz?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteAccount(null)}>Iptal</Button>
+            <Button variant="destructive" onClick={handleDeleteAccount} disabled={saving}>
+              {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Sil
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
