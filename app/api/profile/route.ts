@@ -14,7 +14,7 @@ export async function GET() {
 
     const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const [rows]: any = await pool.execute(
-      'SELECT id, username, full_name, role, email, phone, bio, notifications FROM users WHERE id = ?',
+      'SELECT id, username, full_name, role, email, phone, bio, notifications, timezone, currency FROM users WHERE id = ?',
       [session.id]
     );
 
@@ -39,18 +39,18 @@ export async function PATCH(request: Request) {
 
     const session = JSON.parse(decodeURIComponent(sessionCookie.value));
     const body = await request.json();
-    const { full_name, email, phone, bio, notifications, password } = body;
+    const { full_name, email, phone, bio, notifications, password, timezone, currency } = body;
 
     if (password) {
       const hashedPassword = await hashPassword(password);
       await pool.execute(
-        'UPDATE users SET full_name = ?, email = ?, phone = ?, bio = ?, notifications = ?, password = ? WHERE id = ?',
-        [full_name || null, email || null, phone || null, bio || null, notifications ? JSON.stringify(notifications) : null, hashedPassword, session.id]
+        'UPDATE users SET full_name = ?, email = ?, phone = ?, bio = ?, notifications = ?, password = ?, timezone = ?, currency = ? WHERE id = ?',
+        [full_name || null, email || null, phone || null, bio || null, notifications ? JSON.stringify(notifications) : null, hashedPassword, timezone || 'utc+3', currency || 'try', session.id]
       );
     } else {
       await pool.execute(
-        'UPDATE users SET full_name = ?, email = ?, phone = ?, bio = ?, notifications = ? WHERE id = ?',
-        [full_name || null, email || null, phone || null, bio || null, notifications ? JSON.stringify(notifications) : null, session.id]
+        'UPDATE users SET full_name = ?, email = ?, phone = ?, bio = ?, notifications = ?, timezone = ?, currency = ? WHERE id = ?',
+        [full_name || null, email || null, phone || null, bio || null, notifications ? JSON.stringify(notifications) : null, timezone || 'utc+3', currency || 'try', session.id]
       );
     }
 

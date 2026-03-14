@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(20),
     bio TEXT,
     notifications JSON,
+    timezone VARCHAR(10) DEFAULT 'utc+3',
+    currency VARCHAR(3) DEFAULT 'try',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB;
 
@@ -112,5 +114,34 @@ CREATE TABLE IF NOT EXISTS demographic_stats (
     gender ENUM('Male', 'Female', 'Unknown') NOT NULL,
     percentage DECIMAL(5, 2) DEFAULT 0.00,
     FOREIGN KEY (ad_account_id) REFERENCES ad_accounts(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 8. Billing Table
+CREATE TABLE IF NOT EXISTS billing (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    plan_name VARCHAR(100) DEFAULT 'Basic Plan',
+    plan_price DECIMAL(10, 2) DEFAULT 0.00,
+    billing_cycle ENUM('monthly', 'yearly') DEFAULT 'monthly',
+    payment_method VARCHAR(50),
+    card_last4 VARCHAR(4),
+    card_expiry VARCHAR(5),
+    card_holder VARCHAR(255),
+    next_billing_date DATE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- 9. Invoices Table
+CREATE TABLE IF NOT EXISTS invoices (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    invoice_id VARCHAR(50) NOT NULL,
+    invoice_date DATE NOT NULL,
+    plan_name VARCHAR(100),
+    amount DECIMAL(10, 2) NOT NULL,
+    status ENUM('Paid', 'Pending', 'Failed') DEFAULT 'Paid',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 

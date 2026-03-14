@@ -66,6 +66,12 @@ export default function SettingsPage() {
         if (data.notifications) {
           setNotifications(data.notifications)
         }
+        if (data.timezone) {
+          setTimezone(data.timezone)
+        }
+        if (data.currency) {
+          setCurrency(data.currency)
+        }
       }
     } catch (err) {
       // Use defaults
@@ -78,7 +84,7 @@ export default function SettingsPage() {
       const response = await fetch('/api/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notifications })
+        body: JSON.stringify({ notifications, timezone, currency })
       })
 
       if (!response.ok) throw new Error('Tercihler kaydedilemedi')
